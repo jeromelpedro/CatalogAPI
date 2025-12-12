@@ -1,0 +1,76 @@
+﻿using Catalog.Application.Interfaces;
+using Catalog.Domain.Dto;
+using Catalog.Domain.Dto.Events;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Options;
+using RabbitMQ.Client;
+using RabbitMQ.Client.Events;
+using System.Text;
+using System.Text.Json;
+
+namespace Catalog.Infra.MessageBus;
+
+public class PaymentProcessedConsumer : BackgroundService
+{
+    private readonly RabbitMqSettings _settings;
+    private readonly IOrderService _orderService;
+    private IConnection? _connection;
+    private IModel? _channel;
+
+    public PaymentProcessedConsumer(
+        IOptions<RabbitMqSettings> options,
+        IOrderService orderService)
+    {
+        _settings = options.Value;
+        _orderService = orderService;
+    }
+
+    protected override Task ExecuteAsync(CancellationToken stoppingToken)
+    {
+        var factory = new ConnectionFactory
+        {
+            HostName = _settings.HostName,
+            UserName = _settings.UserName,
+            Password = _settings.Password
+        };
+
+        _connection = factory.CreateConnection();
+        _channel = _connection.CreateModel();
+
+        _channel.ExchangeDeclare(
+            exchange: _settings.ExchangeName,
+            type: ExchangeType.Direct,
+            durable: true);
+
+        _channel.QueueDeclare(
+            queue: "payment_processed_queue",
+            durable: true,
+            exclusive: false,
+            autoDelete: false);
+
+        _channel.QueueBind(
+            queue: "payment_processed_queue",
+            exchange: _settings.ExchangeName,
+            routingKey: "payment_processed");
+
+        var consumer = new EventingBasicConsumer(_channel);
+
+        consumer.Received += async (model, ea) =>
+        {
+            var json = Encoding.UTF8.GetString(ea.Body.ToArray());
+            var evt = JsonSerializer.Deserialize<PaymentProcessedEvent>(json);
+
+            if (evt != null)
+            {
+                await _orderService.AddGameToUserLibraryAsync(evt);
+            }
+        };
+
+        _channel.BasicConsume(
+            queue: "payment_processed_queue",
+            autoAck: true,
+            consumer: consumer);
+
+        return Task.CompletedTask;
+    }
+}
