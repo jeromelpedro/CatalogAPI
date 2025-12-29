@@ -1,6 +1,7 @@
 ﻿using Catalog.Application.Interfaces;
 using Catalog.Domain.Dto;
 using Catalog.Domain.Dto.Events;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using RabbitMQ.Client;
@@ -13,16 +14,16 @@ namespace Catalog.Infra.MessageBus;
 public class PaymentProcessedConsumer : BackgroundService
 {
     private readonly RabbitMqSettings _settings;
-    private readonly IOrderService _orderService;
+    private readonly IServiceScopeFactory _scopeFactory;
     private IConnection? _connection;
     private IModel? _channel;
 
     public PaymentProcessedConsumer(
         IOptions<RabbitMqSettings> options,
-        IOrderService orderService)
+        IServiceScopeFactory scopeFactory)
     {
         _settings = options.Value;
-        _orderService = orderService;
+        _scopeFactory = scopeFactory;
     }
 
     protected override Task ExecuteAsync(CancellationToken stoppingToken)
@@ -55,14 +56,19 @@ public class PaymentProcessedConsumer : BackgroundService
 
         var consumer = new EventingBasicConsumer(_channel);
 
-        consumer.Received += async (model, ea) =>
+        consumer.Received += async (_, ea) =>
         {
+            using var scope = _scopeFactory.CreateScope();
+
+            var orderService = scope.ServiceProvider
+                .GetRequiredService<IOrderService>();
+
             var json = Encoding.UTF8.GetString(ea.Body.ToArray());
             var evt = JsonSerializer.Deserialize<PaymentProcessedEvent>(json);
 
             if (evt != null)
             {
-                await _orderService.AddGameToUserLibraryAsync(evt);
+                await orderService.AddGameToUserLibraryAsync(evt);
             }
         };
 
@@ -72,5 +78,12 @@ public class PaymentProcessedConsumer : BackgroundService
             consumer: consumer);
 
         return Task.CompletedTask;
+    }
+
+    public override void Dispose()
+    {
+        _channel?.Close();
+        _connection?.Close();
+        base.Dispose();
     }
 }
