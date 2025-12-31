@@ -19,10 +19,10 @@ services:
       dockerfile: Dockerfile
     container_name: cloudgames-catalog-api
     ports:
-      - "5060:5060"
+      - "5063:5063"
     environment:
       ASPNETCORE_ENVIRONMENT: Production
-      ASPNETCORE_URLS: "http://+:5060"
+      ASPNETCORE_URLS: "http://+:5063"
 
       ConnectionStrings__DefaultConnection: "Server=mssql,1433;Database=dbCatalog;User Id=sa;Password=SenhaForte123!;TrustServerCertificate=True;"
 
