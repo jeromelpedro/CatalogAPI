@@ -40,7 +40,7 @@ public class PaymentProcessedConsumer : BackgroundService
 
         _channel.ExchangeDeclare(
             exchange: _settings.ExchangeName,
-            type: ExchangeType.Direct,
+            type: ExchangeType.Topic,
             durable: true);
 
         _channel.QueueDeclare(

@@ -43,4 +43,4 @@ app.UseSwaggerUI();
 
 app.MapControllers();
 
-app.Run();
+await app.RunAsync();
