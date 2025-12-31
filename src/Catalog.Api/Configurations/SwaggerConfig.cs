@@ -1,6 +1,6 @@
 ﻿using Microsoft.OpenApi.Models;
 
-namespace Catalog.Api.Configurations
+namespace Users.Api.Configurations
 {
     public static class SwaggerConfig
     {
@@ -14,33 +14,33 @@ namespace Catalog.Api.Configurations
                 {
                     Title = "FIAP Cloud Games - Tech Challenge - Fase 2",
                     Version = "v1",
-                    Description = "API REST em .NET 9 para gerenciar usuários, jogos, biblioteca de jogos e promoções.",
+                    Description = "API REST em .NET 9 para gerenciar jogos e biblioteca.",
                 });
 
                 //JWT
-                //var securityScheme = new OpenApiSecurityScheme
-                //{
-                //    Name = "Authorization",
-                //    Description = "Insira o token JWT desta forma: {seu token}",
-                //    In = ParameterLocation.Header,
-                //    Type = SecuritySchemeType.Http,
-                //    Scheme = "bearer",
-                //    BearerFormat = "JWT",
-                //    Reference = new OpenApiReference
-                //    {
-                //        Type = ReferenceType.SecurityScheme,
-                //        Id = "Bearer"
-                //    }
-                //};
+                var securityScheme = new OpenApiSecurityScheme
+                {
+                    Name = "Authorization",
+                    Description = "Insira o token JWT desta forma: {seu token}",
+                    In = ParameterLocation.Header,
+                    Type = SecuritySchemeType.Http,
+                    Scheme = "bearer",
+                    BearerFormat = "JWT",
+                    Reference = new OpenApiReference
+                    {
+                        Type = ReferenceType.SecurityScheme,
+                        Id = "Bearer"
+                    }
+                };
 
-                //c.AddSecurityDefinition("Bearer", securityScheme);
+                c.AddSecurityDefinition("Bearer", securityScheme);
 
-                //var securityRequirement = new OpenApiSecurityRequirement
-                //{
-                //    { securityScheme, new[] { "Bearer" } }
-                //};
+                var securityRequirement = new OpenApiSecurityRequirement
+                {
+                    { securityScheme, new[] { "Bearer" } }
+                };
 
-                //c.AddSecurityRequirement(securityRequirement);
+                c.AddSecurityRequirement(securityRequirement);
                 //c.OperationFilter<AuthorizeCheckOperationFilter>();
             });
         }

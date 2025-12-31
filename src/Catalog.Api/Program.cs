@@ -6,6 +6,7 @@ using Catalog.Infra.Data;
 using Catalog.Infra.MessageBus;
 using Catalog.Infra.Repositories;
 using Microsoft.EntityFrameworkCore;
+using Users.Api.Configurations;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -31,8 +32,9 @@ builder.Services.AddHostedService<PaymentProcessedConsumer>();
 
 // API
 builder.Services.AddControllers();
+builder.Services.AddOpenApi();
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerConfiguration();
 
 var app = builder.Build();
 
