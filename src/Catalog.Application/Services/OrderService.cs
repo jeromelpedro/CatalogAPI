@@ -14,7 +14,7 @@ public class OrderService : IOrderService
     private readonly IRabbitMqPublisher _rabbitMqPublisher;
     //private readonly ILogger<OrderService> _logger;
 
-    private const string OrderPlacedQueueName = "order-placed-queue";
+    private const string OrderPlacedQueueName = "OrderPlacedEvent";
 
     public OrderService(
         IOrderRepository orderRepository,
