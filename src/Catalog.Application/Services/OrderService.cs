@@ -53,6 +53,7 @@ public class OrderService : IOrderService
             OrderId = order.Id,
             UserId = order.UserId,
             GameId = order.GameId,
+            EmailUser = dto.EmailUser,
             Price = order.Price,
             CreatedAt = order.CreatedAt
         };
