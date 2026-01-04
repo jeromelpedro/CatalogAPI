@@ -1,4 +1,4 @@
-using Catalog.Application.Interfaces;
+﻿using Catalog.Application.Interfaces;
 using Catalog.Application.Services;
 using Catalog.Domain.Dto;
 using Catalog.Domain.Interfaces;
@@ -10,10 +10,9 @@ using Users.Api.Configurations;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// RabbitMQ
 builder.Services.Configure<RabbitMqSettings>(
     builder.Configuration.GetSection("RabbitMQ"));
-
-DatabaseInitializer.EnsureDatabase(builder.Configuration);
 
 // EF Core
 builder.Services.AddDbContext<AppDbContext>(opt =>
@@ -39,6 +38,13 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerConfiguration();
 
 var app = builder.Build();
+
+// ✅ APLICAR MIGRATIONS (FORMA CORRETA)
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    db.Database.Migrate();
+}
 
 app.UseSwagger();
 app.UseSwaggerUI();

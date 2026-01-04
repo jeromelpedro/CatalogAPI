@@ -24,7 +24,7 @@ services:
       ASPNETCORE_ENVIRONMENT: Production
       ASPNETCORE_URLS: "http://+:5063"
 
-      ConnectionStrings__SetupConnection:   "Server=mssql,1433;Database=dbCatalog;User Id=sa;Password=SenhaForte123!;TrustServerCertificate=True;"
+      ConnectionStrings__SetupConnection:   "Server=mssql,1433;Database=master;User Id=sa;Password=SenhaForte123!;TrustServerCertificate=True;"
       ConnectionStrings__DefaultConnection: "Server=mssql,1433;Database=dbCatalog;User Id=usuario_app;Password=SenhaForte123!;TrustServerCertificate=True;"
 
       RabbitMq__HostName: "cloudgames-rabbitmq"
