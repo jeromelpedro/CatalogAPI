@@ -1,12 +1,13 @@
 ﻿using Catalog.Application.Interfaces;
 using Catalog.Domain.Dto;
-using Catalog.Domain.Entity;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Catalog.Api.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[Authorize]
 public class GamesController : ControllerBase
 {
     private readonly IGameService _gameService;

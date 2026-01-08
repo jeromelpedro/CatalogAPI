@@ -27,6 +27,10 @@ services:
       ConnectionStrings__SetupConnection:   "Server=mssql,1433;Database=dbCatalog;User Id=sa;Password=SenhaForte123!;TrustServerCertificate=True;"
       ConnectionStrings__DefaultConnection: "Server=mssql,1433;Database=dbCatalog;User Id=usuario_app;Password=SenhaForte123!;TrustServerCertificate=True;"
 
+      Jwt__Key: "chave-secreta-super-forte-123456"
+      Jwt__Issuer: "CloudGamesAPI"
+      Jwt__Audience: "CloudGamesAPIClient"
+
       RabbitMq__HostName: "cloudgames-rabbitmq"
       RabbitMq__Port: "5672"
       RabbitMq__UserName: "guest"

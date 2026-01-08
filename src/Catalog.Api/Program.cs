@@ -1,3 +1,4 @@
+using Catalog.Api.Configurations;
 using Catalog.Application.Interfaces;
 using Catalog.Application.Services;
 using Catalog.Domain.Dto;
@@ -10,6 +11,7 @@ using Users.Api.Configurations;
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.Services.AddAuthConfiguration(builder.Configuration);
 builder.Services.Configure<RabbitMqSettings>(
     builder.Configuration.GetSection("RabbitMQ"));
 
@@ -43,6 +45,8 @@ var app = builder.Build();
 app.UseSwagger();
 app.UseSwaggerUI();
 
+app.UseAuthentication();
+app.UseAuthorization();
 app.MapControllers();
 
 await app.RunAsync();

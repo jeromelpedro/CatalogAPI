@@ -1,11 +1,14 @@
 ﻿using Catalog.Application.Interfaces;
 using Catalog.Domain.Dto;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Catalog.Api.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[Authorize]
+
 public class OrdersController : ControllerBase
 {
     private readonly IOrderService _orderService;
