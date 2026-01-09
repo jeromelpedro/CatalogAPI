@@ -18,7 +18,7 @@ builder.Services.Configure<RabbitMqSettings>(
 
 // EF Core
 builder.Services.AddDbContext<AppDbContext>(opt =>
-    opt.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+    opt.UseSqlServer(builder.Configuration.GetConnectionString("SetupConnection")));
 
 // Services
 builder.Services.AddScoped<IGameService, GameService>();

@@ -37,6 +37,9 @@ services:
       RabbitMq__Password: "guest"
       RabbitMq__ExchangeName: "cloudgames.topic"
 
+    volumes:
+      - dataprotection_keys:/root/.aspnet/DataProtection-Keys
+
     networks:
       - cloudgames-network
 
@@ -46,3 +49,4 @@ networks:
 
 volumes:
   catalog_mssql_data:
+  dataprotection_keys:
