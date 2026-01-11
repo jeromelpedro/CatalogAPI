@@ -24,6 +24,14 @@ public class GameRepository : IGameRepository
         return await _context.Games.AsNoTracking().ToListAsync();
     }
 
+    public async Task<List<Game>> GetByUserIdAsync(string userId)
+    {
+        return await (from ug in _context.UserGames
+                      join g in _context.Games on ug.GameId equals g.Id
+                      where ug.UserId == userId
+                      select g).AsNoTracking().ToListAsync();
+    }
+
     public async Task AddAsync(Game game)
     {
         _context.Games.Add(game);

@@ -52,6 +52,18 @@ public class GameService : IGameService
         };
     }
 
+    public async Task<IEnumerable<UserGameGameDto>> GetByUserIdAsync(string userId)
+    {
+        var games = await _gameRepository.GetByUserIdAsync(userId);
+
+        return games.Select(g => new UserGameGameDto
+        {
+            Id = g.Id,
+            Name = g.Name,
+            Genre = g.Genre
+        }).ToList();
+    }
+
     public async Task<GameDto> CreateAsync(CreateGameDto dto)
     {
         var game = new Game

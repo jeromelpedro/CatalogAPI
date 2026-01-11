@@ -31,6 +31,13 @@ public class GamesController : ControllerBase
         return game is not null ? Ok(game) : NotFound();
     }
 
+    [HttpGet("/ListGamesByUserId/{userId}")]
+    public async Task<ActionResult<IEnumerable<UserGameGameDto>>> GetbyUserId(string userId)
+    {
+        var games = await _gameService.GetByUserIdAsync(userId);
+        return Ok(games);
+    }
+
     [HttpPost]
     public async Task<ActionResult<GameDto>> Create([FromBody] CreateGameDto dto)
     {

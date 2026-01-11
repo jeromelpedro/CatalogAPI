@@ -3,7 +3,7 @@ services:
     image: mcr.microsoft.com/mssql/server:2022-latest
     container_name: cloudgames-catalog-mssql
     ports:
-      - "1434:1433" # porta diferente para evitar conflito local
+      - "1434:1434" # porta diferente para evitar conflito local
     environment:
       ACCEPT_EULA: "Y"
       SA_PASSWORD: "SenhaForte123!"
