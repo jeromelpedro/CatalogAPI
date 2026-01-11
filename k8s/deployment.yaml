@@ -19,7 +19,7 @@ spec:
           image: catalog-api:latest
           imagePullPolicy: IfNotPresent
           ports:
-            - containerPort: 5058
+            - containerPort: 5063
               protocol: TCP
           envFrom:
             - configMapRef:
@@ -36,7 +36,7 @@ spec:
           livenessProbe:
             httpGet:
               path: /
-              port: 5058
+              port: 5063
             initialDelaySeconds: 15
             periodSeconds: 20
             timeoutSeconds: 5
@@ -44,7 +44,7 @@ spec:
           readinessProbe:
             httpGet:
               path: /
-              port: 5058
+              port: 5063
             initialDelaySeconds: 5
             periodSeconds: 10
             timeoutSeconds: 3

@@ -6,7 +6,7 @@ metadata:
     app: catalog-api
 data:
   ASPNETCORE_ENVIRONMENT: "Production"
-  ASPNETCORE_HTTP_PORTS: "5058"
+  ASPNETCORE_HTTP_PORTS: "5063"
   Jwt__Issuer: "CloudGamesAPI"
   Jwt__Audience: "CloudGamesAPIClient"
   RabbitMq__HostName: "cloudgames-rabbitmq"
