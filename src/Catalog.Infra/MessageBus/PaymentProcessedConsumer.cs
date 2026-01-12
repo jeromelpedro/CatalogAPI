@@ -44,13 +44,13 @@ public class PaymentProcessedConsumer : BackgroundService
             durable: true);
 
         _channel.QueueDeclare(
-            queue: "PaymentProcessedEvent",
+            queue: "PaymentProcessedEvent-Catalog",
             durable: true,
             exclusive: false,
             autoDelete: false);
 
         _channel.QueueBind(
-            queue: "PaymentProcessedEvent",
+            queue: "PaymentProcessedEvent-Catalog",
             exchange: _settings.ExchangeName,
             routingKey: "PaymentProcessedEvent");
 
@@ -73,7 +73,7 @@ public class PaymentProcessedConsumer : BackgroundService
         };
 
         _channel.BasicConsume(
-            queue: "PaymentProcessedEvent",
+            queue: "PaymentProcessedEvent-Catalog",
             autoAck: true,
             consumer: consumer);
 
