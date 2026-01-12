@@ -14,6 +14,19 @@ spec:
       labels:
         app: catalog-api
     spec:
+      initContainers:
+        - name: wait-for-rabbitmq
+          image: busybox
+          command:
+            - sh
+            - -c
+            - |
+              echo "Waiting for RabbitMQ..."
+              until nc -z cloudgames-rabbitmq 5672; do
+                echo "RabbitMQ not ready - sleeping"
+                sleep 3
+              done
+              echo "RabbitMQ reachable"
       containers:
         - name: catalog-api
           image: catalog-api:latest
@@ -34,16 +47,14 @@ spec:
               memory: "256Mi"
               cpu: "500m"
           livenessProbe:
-            httpGet:
-              path: /
+            tcpSocket:
               port: 5063
             initialDelaySeconds: 15
             periodSeconds: 20
             timeoutSeconds: 5
             failureThreshold: 3
           readinessProbe:
-            httpGet:
-              path: /
+            tcpSocket:
               port: 5063
             initialDelaySeconds: 5
             periodSeconds: 10
