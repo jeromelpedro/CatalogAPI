@@ -185,3 +185,102 @@ dotnet run --project .\\Users.Api.csproj
 
 ## Contribuição
 Abra issues e PRs. Mantenha os testes verdes e atualize a documentação quando adicionar novos serviços ou mudanças de contrato.
+
+## ☸️ Kubernetes
+
+### Pré-requisitos
+
+- [Docker Desktop](https://www.docker.com/products/docker-desktop/) com Kubernetes habilitado
+- [kubectl](https://kubernetes.io/docs/tasks/tools/) (já incluso no Docker Desktop)
+
+### Habilitar Kubernetes no Docker Desktop
+
+1. Abra o **Docker Desktop**
+2. Vá em **Settings** (ícone de engrenagem)
+3. Clique em **Kubernetes** no menu lateral
+4. Marque **Enable Kubernetes**
+5. Clique em **Apply & Restart**
+6. Aguarde o Kubernetes iniciar (ícone verde no canto inferior esquerdo)
+
+### Deploy da Aplicação
+
+#### Passo 1: Construir a imagem Docker
+
+```bash
+# Na raiz do projeto
+docker build -t catalog-api:latest .
+```
+
+#### Passo 2: Aplicar os manifests Kubernetes
+
+```bash
+# Aplicar todos os recursos (ConfigMap, Secret, Deployment e Service)
+kubectl apply -f ./k8s/
+```
+
+**Saída esperada:**
+```
+configmap/catalog-api-config created
+deployment.apps/catalog-api created
+secret/catalog-api-secret created
+service/catalog-api created
+```
+
+#### Passo 3: Verificar o status
+
+```bash
+# Ver status dos pods
+kubectl get pods
+
+# Ver status dos serviços
+kubectl get services
+
+# Ver logs da aplicação
+kubectl logs -f deployment/catalog-api
+```
+
+**Saída esperada:**
+```
+NAME                           READY   STATUS    RESTARTS   AGE
+catalog-api-75b78fc9f-xxxxx   1/1     Running   0          30s
+```
+
+#### Passo 4: Acessar a aplicação
+
+Como o Service é do tipo `ClusterIP`, use **port-forward** para acessar localmente:
+
+```bash
+kubectl port-forward service/catalog-api 5063:5063
+```
+
+A aplicação estará disponível em:
+- **API:** http://localhost:5063
+- **Swagger:** http://localhost:5063/swagger
+
+### Arquivos de Configuração Kubernetes
+
+| Arquivo | Descrição |
+|---------|-----------|
+| `k8s/configmap.yaml` | Configurações não-sensíveis (hostname RabbitMQ, filas, etc.) |
+| `k8s/secret.yaml` | Credenciais sensíveis (usuário/senha RabbitMQ em Base64) |
+| `k8s/deployment.yaml` | Definição do pod, replicas, health checks e recursos |
+| `k8s/service.yaml` | Exposição do serviço internamente no cluster |
+
+### Comandos Úteis
+
+```bash
+# Ver detalhes do pod
+kubectl describe pod -l app=catalog-api
+
+# Ver eventos do cluster
+kubectl get events --sort-by='.lastTimestamp'
+
+# Escalar replicas
+kubectl scale deployment/catalog-api --replicas=3
+
+# Atualizar após mudanças na imagem
+docker build -t catalog-api:latest .
+kubectl rollout restart deployment/catalog-api
+
+# Remover todos os recursos
+kubectl delete -f ./k8s/
