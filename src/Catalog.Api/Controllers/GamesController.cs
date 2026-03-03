@@ -38,6 +38,13 @@ public class GamesController : ControllerBase
         return Ok(games);
     }
 
+    [HttpGet("/api/TopGames")]
+    public async Task<ActionResult<IEnumerable<TopGameDto>>> GetTopGames()
+    {
+        var games = await _gameService.GetTopGamesAsync();
+        return Ok(games);
+    }
+
     [HttpPost]
     public async Task<ActionResult<GameDto>> Create([FromBody] CreateGameDto dto)
     {

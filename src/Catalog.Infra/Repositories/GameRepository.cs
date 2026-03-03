@@ -32,6 +32,31 @@ public class GameRepository : IGameRepository
                       select g).AsNoTracking().ToListAsync();
     }
 
+    public async Task<List<TopGameProjection>> GetTopGamesAsync()
+    {
+        return await _context.UserGames
+            .GroupBy(ug => ug.GameId)
+            .Select(group => new
+            {
+                GameId = group.Key,
+                TotalPurchases = group.Count()
+            })
+            .OrderByDescending(x => x.TotalPurchases)
+            .Take(3)
+            .Join(_context.Games,
+                  grouped => grouped.GameId,
+                  game => game.Id,
+                  (grouped, game) => new TopGameProjection
+                  {
+                      Id = game.Id,
+                      Name = game.Name,
+                      Genre = game.Genre,
+                      TotalPurchases = grouped.TotalPurchases
+                  })
+            .AsNoTracking()
+            .ToListAsync();
+    }
+
     public async Task AddAsync(Game game)
     {
         _context.Games.Add(game);

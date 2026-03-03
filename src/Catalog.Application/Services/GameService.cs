@@ -64,6 +64,19 @@ public class GameService : IGameService
         }).ToList();
     }
 
+    public async Task<IEnumerable<TopGameDto>> GetTopGamesAsync()
+    {
+        var games = await _gameRepository.GetTopGamesAsync();
+
+        return games.Select(g => new TopGameDto
+        {
+            Id = g.Id,
+            Name = g.Name,
+            Genre = g.Genre,
+            TotalPurchases = g.TotalPurchases
+        }).ToList();
+    }
+
     public async Task<GameDto> CreateAsync(CreateGameDto dto)
     {
         var game = new Game
