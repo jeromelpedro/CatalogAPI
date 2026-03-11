@@ -19,11 +19,13 @@ public class OrderRepository : IOrderRepository
 
     public async Task AddAsync(Order order)
     {
+        _logger.LogTrace("Iniciando AddAsync em OrderRepository para OrderId {OrderId}", order.Id);
         _logger.LogInformation("Adicionando novo pedido no banco de dados. OrderId: {OrderId}, UserId: {UserId}, GameId: {GameId}", order.Id, order.UserId, order.GameId);
         try
         {
             _context.Orders.Add(order);
             await _context.SaveChangesAsync();
+            _logger.LogTrace("AddAsync finalizado em OrderRepository para OrderId {OrderId}", order.Id);
             _logger.LogInformation("Pedido adicionado com sucesso. OrderId: {OrderId}", order.Id);
         }
         catch (Exception ex)
@@ -35,6 +37,7 @@ public class OrderRepository : IOrderRepository
 
     public async Task<Order?> GetByIdAsync(string id)
     {
+        _logger.LogTrace("Iniciando GetByIdAsync em OrderRepository para OrderId {OrderId}", id);
         _logger.LogDebug("Buscando pedido com Id {OrderId} no banco de dados", id);
         try
         {
@@ -43,6 +46,7 @@ public class OrderRepository : IOrderRepository
                 _logger.LogDebug("Pedido não encontrado com Id {OrderId}", id);
             else
                 _logger.LogDebug("Pedido encontrado. OrderId: {OrderId}, Status: {Status}", id, order.Status);
+            _logger.LogTrace("GetByIdAsync finalizado em OrderRepository para OrderId {OrderId}", id);
             return order;
         }
         catch (Exception ex)
@@ -54,11 +58,13 @@ public class OrderRepository : IOrderRepository
 
     public async Task UpdateAsync(Order order)
     {
+        _logger.LogTrace("Iniciando UpdateAsync em OrderRepository para OrderId {OrderId}", order.Id);
         _logger.LogInformation("Atualizando pedido no banco de dados. OrderId: {OrderId}, Status: {Status}", order.Id, order.Status);
         try
         {
             _context.Orders.Update(order);
             await _context.SaveChangesAsync();
+            _logger.LogTrace("UpdateAsync finalizado em OrderRepository para OrderId {OrderId}", order.Id);
             _logger.LogInformation("Pedido atualizado com sucesso. OrderId: {OrderId}", order.Id);
         }
         catch (Exception ex)

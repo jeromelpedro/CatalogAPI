@@ -17,6 +17,7 @@ namespace Catalog.Api.Middlewares
 
         public async Task InvokeAsync(HttpContext context)
         {
+            _logger.LogTrace("CorrelationIdMiddleware iniciado para {Method} {Path}", context.Request.Method, context.Request.Path);
             var correlationId = context.Request.Headers[HeaderKey].FirstOrDefault();
             if (string.IsNullOrWhiteSpace(correlationId))
                 correlationId = Guid.NewGuid().ToString();
@@ -33,6 +34,7 @@ namespace Catalog.Api.Middlewares
             {
                 _logger.LogDebug("CorrelationId assigned: {correlationId}", correlationId);
                 await _next(context);
+                _logger.LogTrace("CorrelationIdMiddleware finalizado para CorrelationId {CorrelationId}", correlationId);
             }
         }
     }

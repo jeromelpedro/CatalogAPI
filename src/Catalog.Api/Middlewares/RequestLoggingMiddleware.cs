@@ -15,6 +15,7 @@ namespace Catalog.Api.Middlewares
 
 		public async Task InvokeAsync(HttpContext context)
 		{
+			_logger.LogTrace("RequestLoggingMiddleware iniciado para {method} {path}", context.Request.Method, context.Request.Path);
 			var stopwatch = Stopwatch.StartNew();
 
 			var request = context.Request;
@@ -32,6 +33,7 @@ namespace Catalog.Api.Middlewares
 				context.Connection.RemoteIpAddress?.ToString(),
 				traceId,
 				correlationId);
+			_logger.LogTrace("RequestLoggingMiddleware finalizado para {method} {path}", request.Method, request.Path);
 		}
 	}
 

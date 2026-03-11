@@ -16,9 +16,11 @@ namespace Catalog.Api.Middlewares
 
 		public async Task InvokeAsync(HttpContext context)
 		{
+			_logger.LogTrace("ErrorHandlingMiddleware iniciado para {Method} {Path}", context.Request.Method, context.Request.Path);
 			try
 			{
 				await _next(context);
+				_logger.LogTrace("ErrorHandlingMiddleware finalizado sem excecao para {Method} {Path}", context.Request.Method, context.Request.Path);
 			}
 			catch (Exception ex)
 			{
@@ -38,6 +40,7 @@ namespace Catalog.Api.Middlewares
 				});
 
 				await context.Response.WriteAsync(result);
+				_logger.LogTrace("ErrorHandlingMiddleware finalizado com resposta de erro para TraceId {TraceId}", traceId);
 			}
 		}
 	}

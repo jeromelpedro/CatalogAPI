@@ -33,6 +33,7 @@ public class OrderService : IOrderService
 
     public async Task<Order> CreateOrderAsync(CreateOrderDto dto)
     {
+        _logger.LogTrace("Iniciando CreateOrderAsync para UserId {UserId}, GameId {GameId}", dto.UserId, dto.GameId);
         _logger.LogInformation("Iniciando criação de pedido. Usuário: {UserId}, Jogo: {GameId}", dto.UserId, dto.GameId);
         try
         {
@@ -44,6 +45,7 @@ public class OrderService : IOrderService
             }
 
             var price = game.PromotionalPrice > 0 ? game.PromotionalPrice : game.Price;
+            _logger.LogTrace("Preço definido para pedido. Price: {Price}, PromotionalPrice: {PromotionalPrice}, BasePrice: {BasePrice}", price, game.PromotionalPrice, game.Price);
 
             var order = new Order
             {
@@ -54,6 +56,7 @@ public class OrderService : IOrderService
             };
 
             await _orderRepository.AddAsync(order);
+            _logger.LogTrace("Pedido persistido em CreateOrderAsync com OrderId {OrderId}", order.Id);
             _logger.LogInformation("Pedido criado com sucesso. OrderId: {OrderId}, Preço: {Price}", order.Id, price);
 
             var evt = new OrderPlacedEvent
@@ -68,7 +71,9 @@ public class OrderService : IOrderService
 
             _logger.LogInformation("Publicando OrderPlacedEvent na fila {QueueName} para OrderId {OrderId}", OrderPlacedQueueName, order.Id);
             await _rabbitMqPublisher.PublishAsync(evt, OrderPlacedQueueName);
+            _logger.LogTrace("OrderPlacedEvent publicado para OrderId {OrderId}", order.Id);
 
+            _logger.LogTrace("Finalizando CreateOrderAsync para OrderId {OrderId}", order.Id);
             return order;
         }
         catch (Exception ex)
@@ -81,6 +86,7 @@ public class OrderService : IOrderService
     // chamado pelo consumidor de PaymentProcessedEvent quando Approved
     public async Task AddGameToUserLibraryAsync(PaymentProcessedEvent evt)
     {
+        _logger.LogTrace("Iniciando AddGameToUserLibraryAsync para OrderId {OrderId}", evt.OrderId);
         _logger.LogInformation("Processando addição de jogo à biblioteca. OrderId: {OrderId}, UserId: {UserId}, GameId: {GameId}", evt.OrderId, evt.UserId, evt.GameId);
         try
         {
@@ -103,6 +109,7 @@ public class OrderService : IOrderService
                 GameId = evt.GameId
             };
             await _userGameRepository.AddAsync(userGame);
+            _logger.LogTrace("Registro de UserGame criado para UserId {UserId} e GameId {GameId}", evt.UserId, evt.GameId);
             _logger.LogInformation("Jogo {GameId} adicionado à biblioteca do usuário {UserId}", evt.GameId, evt.UserId);
 
             var order = await _orderRepository.GetByIdAsync(evt.OrderId);
@@ -112,6 +119,8 @@ public class OrderService : IOrderService
                 await _orderRepository.UpdateAsync(order);
                 _logger.LogInformation("Status do pedido {OrderId} atualizado para Approved", evt.OrderId);
             }
+
+            _logger.LogTrace("Finalizando AddGameToUserLibraryAsync para OrderId {OrderId}", evt.OrderId);
         }
         catch (Exception ex)
         {
