@@ -2,66 +2,105 @@
 using Catalog.Domain.Dto;
 using Catalog.Domain.Entity;
 using Catalog.Domain.Interfaces;
-//using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging;
 
 namespace Catalog.Application.Services;
 
 public class GameService : IGameService
 {
     private readonly IGameRepository _gameRepository;
-    //private readonly ILogger<GameService> _logger;
+    private readonly ILogger<GameService> _logger;
 
-    public GameService(IGameRepository gameRepository)
+    public GameService(IGameRepository gameRepository, ILogger<GameService> logger)
     {
         _gameRepository = gameRepository;
-        //_logger = logger; //, ILogger<GameService> logger
+        _logger = logger;
     }
 
     public async Task<List<GameDto>> GetAllAsync()
     {
-        var games = await _gameRepository.GetAllAsync();
-
-        return games.Select(g => new GameDto
+        _logger.LogInformation("Iniciando busca de todos os jogos");
+        try
         {
-            Id = g.Id,
-            Name = g.Name,
-            Genre = g.Genre,
-            Published = g.Published,
-            Active = g.Active,
-            Price = g.Price,
-            PromotionalPrice = g.PromotionalPrice
-        }).ToList();
+            var games = await _gameRepository.GetAllAsync();
+
+            var result = games.Select(g => new GameDto
+            {
+                Id = g.Id,
+                Name = g.Name,
+                Genre = g.Genre,
+                Published = g.Published,
+                Active = g.Active,
+                Price = g.Price,
+                PromotionalPrice = g.PromotionalPrice
+            }).ToList();
+            
+            _logger.LogInformation("Busca de jogos concluída. Total: {Count} jogos retornados", result.Count);
+            return result;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Erro ao buscar todos os jogos");
+            throw;
+        }
     }
 
     public async Task<GameDto?> GetByIdAsync(string id)
     {
-        var game = await _gameRepository.GetByIdAsync(id);
-
-        if (game is null)
-            return null;
-
-        return new GameDto
+        _logger.LogInformation("Buscando jogo com Id {Id}", id);
+        try
         {
-            Id = game.Id,
-            Name = game.Name,
-            Genre = game.Genre,
-            Published = game.Published,
-            Active = game.Active,
-            Price = game.Price,
-            PromotionalPrice = game.PromotionalPrice
-        };
+            var game = await _gameRepository.GetByIdAsync(id);
+
+            if (game is null)
+            {
+                _logger.LogWarning("Jogo não encontrado com Id {Id}", id);
+                return null;
+            }
+
+            var result = new GameDto
+            {
+                Id = game.Id,
+                Name = game.Name,
+                Genre = game.Genre,
+                Published = game.Published,
+                Active = game.Active,
+                Price = game.Price,
+                PromotionalPrice = game.PromotionalPrice
+            };
+            
+            _logger.LogDebug("Jogo encontrado: {GameName} (Id: {Id})", game.Name, id);
+            return result;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Erro ao buscar jogo com Id {Id}", id);
+            throw;
+        }
     }
 
     public async Task<IEnumerable<UserGameGameDto>> GetByUserIdAsync(string userId)
     {
-        var games = await _gameRepository.GetByUserIdAsync(userId);
-
-        return games.Select(g => new UserGameGameDto
+        _logger.LogInformation("Buscando jogos do usuário {UserId}", userId);
+        try
         {
-            Id = g.Id,
-            Name = g.Name,
-            Genre = g.Genre
-        }).ToList();
+            var games = await _gameRepository.GetByUserIdAsync(userId);
+
+            var result = games.Select(g => new UserGameGameDto
+            {
+                Id = g.Id,
+                Name = g.Name,
+                Genre = g.Genre
+            }).ToList();
+            
+            _logger.LogInformation("Usuário {UserId} possui {Count} jogos", userId, result.Count);
+            return result;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Erro ao buscar jogos do usuário {UserId}", userId);
+            throw;
+        }
     }
 
     public async Task<IEnumerable<TopGameDto>> GetTopGamesAsync()
@@ -79,67 +118,100 @@ public class GameService : IGameService
 
     public async Task<GameDto> CreateAsync(CreateGameDto dto)
     {
-        var game = new Game
+        _logger.LogInformation("Iniciando criação de novo jogo: {GameName} - Gênero: {Genre}", dto.Name, dto.Genre);
+        try
         {
-            Name = dto.Name,
-            Genre = dto.Genre,
-            Published = dto.Published,
-            Active = dto.Active,
-            Price = dto.Price,
-            PromotionalPrice = dto.PromotionalPrice,
-            CreatedAt = DateTime.UtcNow,
-            UpdatedAt = DateTime.UtcNow
-        };
+            var game = new Game
+            {
+                Name = dto.Name,
+                Genre = dto.Genre,
+                Published = dto.Published,
+                Active = dto.Active,
+                Price = dto.Price,
+                PromotionalPrice = dto.PromotionalPrice,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            };
 
-        await _gameRepository.AddAsync(game);
+            await _gameRepository.AddAsync(game);
 
-        //_logger.LogInformation("Jogo criado com Id {Id}", game.Id);
+            _logger.LogInformation("Jogo criado com sucesso. Id: {Id}, Nome: {Name}", game.Id, game.Name);
 
-        return new GameDto
+            return new GameDto
+            {
+                Id = game.Id,
+                Name = game.Name,
+                Genre = game.Genre,
+                Published = game.Published,
+                Active = game.Active,
+                Price = game.Price,
+                PromotionalPrice = game.PromotionalPrice
+            };
+        }
+        catch (Exception ex)
         {
-            Id = game.Id,
-            Name = game.Name,
-            Genre = game.Genre,
-            Published = game.Published,
-            Active = game.Active,
-            Price = game.Price,
-            PromotionalPrice = game.PromotionalPrice
-        };
+            _logger.LogError(ex, "Erro ao criar jogo: {GameName}", dto.Name);
+            throw;
+        }
     }
 
     public async Task<bool> UpdateAsync(string id, CreateGameDto dto)
     {
-        var game = await _gameRepository.GetByIdAsync(id);
+        _logger.LogInformation("Atualizando jogo com Id {Id}: {GameName}", id, dto.Name);
+        try
+        {
+            var game = await _gameRepository.GetByIdAsync(id);
 
-        if (game is null)
-            return false;
+            if (game is null)
+            {
+                _logger.LogWarning("Jogo não encontrado para atualização. Id: {Id}", id);
+                return false;
+            }
 
-        game.Name = dto.Name;
-        game.Genre = dto.Genre;
-        game.Published = dto.Published;
-        game.Active = dto.Active;
-        game.Price = dto.Price;
-        game.PromotionalPrice = dto.PromotionalPrice;
-        game.UpdatedAt = DateTime.UtcNow;
+            game.Name = dto.Name;
+            game.Genre = dto.Genre;
+            game.Published = dto.Published;
+            game.Active = dto.Active;
+            game.Price = dto.Price;
+            game.PromotionalPrice = dto.PromotionalPrice;
+            game.UpdatedAt = DateTime.UtcNow;
 
-        await _gameRepository.UpdateAsync(game);
+            await _gameRepository.UpdateAsync(game);
 
-        //_logger.LogInformation("Jogo atualizado Id {Id}", game.Id);
+            _logger.LogInformation("Jogo atualizado com sucesso. Id: {Id}, Nome: {Name}", game.Id, game.Name);
 
-        return true;
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Erro ao atualizar jogo com Id {Id}", id);
+            throw;
+        }
     }
 
     public async Task<bool> DeleteAsync(string id)
     {
-        var game = await _gameRepository.GetByIdAsync(id);
+        _logger.LogInformation("Deletando jogo com Id {Id}", id);
+        try
+        {
+            var game = await _gameRepository.GetByIdAsync(id);
 
-        if (game is null)
-            return false;
+            if (game is null)
+            {
+                _logger.LogWarning("Jogo não encontrado para deleção. Id: {Id}", id);
+                return false;
+            }
 
-        await _gameRepository.DeleteAsync(id);
+            await _gameRepository.DeleteAsync(id);
 
-        //_logger.LogInformation("Jogo removido Id {Id}", id);
+            _logger.LogInformation("Jogo deletado com sucesso. Id: {Id}", id);
 
-        return true;
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Erro ao deletar jogo com Id {Id}", id);
+            throw;
+        }
     }
 }
