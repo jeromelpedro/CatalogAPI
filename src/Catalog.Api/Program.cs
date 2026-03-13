@@ -58,11 +58,32 @@ builder.Services.AddSwaggerConfiguration();
 
 var app = builder.Build();
 
-// ✅ APLICAR MIGRATIONS (FORMA CORRETA)
+//using (var scope = app.Services.CreateScope())
+//{
+//    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+//    db.Database.Migrate();
+//}
+
 using (var scope = app.Services.CreateScope())
 {
-    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    db.Database.Migrate();
+	var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+	var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+	try
+	{
+		var connectionString = db.Database.GetConnectionString();
+		logger.LogInformation("Tentando conectar ao banco de dados...");
+		logger.LogInformation("Connection string: {ConnectionString}", connectionString);
+
+		db.Database.Migrate();
+
+		logger.LogInformation("Migrate executado com sucesso.");
+	}
+	catch (Exception ex)
+	{
+		logger.LogError(ex, "Erro ao conectar ou migrar o banco de dados.");
+		throw;
+	}
 }
 
 app.UseSwagger();
