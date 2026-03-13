@@ -20,15 +20,13 @@
     <PackageReference Include="Serilog.AspNetCore" Version="8.1.0" />
     <PackageReference Include="Serilog.Settings.Configuration" Version="8.1.1" />
     <PackageReference Include="Serilog.Sinks.Console" Version="6.1.0" />
-    <PackageReference Include="OpenTelemetry" Version="1.5.0-rc9" />
-    <PackageReference Include="OpenTelemetry.Extensions.Hosting" Version="1.5.0-rc9" />
-    <PackageReference Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.0.0-rc9" />
-    <PackageReference Include="OpenTelemetry.Instrumentation.Http" Version="1.0.0-rc9" />
-    <PackageReference Include="OpenTelemetry.Instrumentation.SqlClient" Version="1.0.0-rc9" />
-    <PackageReference Include="OpenTelemetry.Instrumentation.EntityFrameworkCore" Version="1.0.0-rc9" />
+    <PackageReference Include="OpenTelemetry" Version="1.11.2" />
+    <PackageReference Include="OpenTelemetry.Extensions.Hosting" Version="1.11.2" />
+    <PackageReference Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.11.2" />
+    <PackageReference Include="OpenTelemetry.Instrumentation.Http" Version="1.11.2" />
+    <PackageReference Include="OpenTelemetry.Instrumentation.SqlClient" Version="1.11.2" />
     <PackageReference Include="Microsoft.ApplicationInsights.AspNetCore" Version="2.22.0" />
   </ItemGroup>
-
 
   <ItemGroup>
     <ProjectReference Include="..\Catalog.Application\Catalog.Application.csproj" />
@@ -36,6 +34,10 @@
     <ProjectReference Include="..\Catalog.Infra\Catalog.Infra.csproj" />
   </ItemGroup>
 
-  <ProjectExtensions><VisualStudio><UserProperties appsettings_1json__JsonSchema="https://www.schemastore.org/asconfig-schema.json" /></VisualStudio></ProjectExtensions>
+  <ProjectExtensions>
+    <VisualStudio>
+      <UserProperties appsettings_1json__JsonSchema="https://www.schemastore.org/asconfig-schema.json" />
+    </VisualStudio>
+  </ProjectExtensions>
 
 </Project>
