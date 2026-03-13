@@ -1,6 +1,3 @@
-# Docs for the Azure Web Apps Deploy action: https://github.com/Azure/webapps-deploy
-# More GitHub Actions for Azure: https://github.com/Azure/actions
-
 name: Build and deploy ASP.Net Core app to Azure Web App - catalog-api-posarqfiap2026
 
 on:
@@ -24,10 +21,10 @@ jobs:
           dotnet-version: '9.x'
 
       - name: Build with dotnet
-        run: dotnet build ./src/Catalog.Api/Catalog.Api.csproj --configuration Release
+        run: dotnet build src/Catalog.Api/Catalog.Api.csproj --configuration Release
 
       - name: dotnet publish
-        run: dotnet publish ./src/Catalog.Api/Catalog.Api.csproj -c Release -o ${{env.DOTNET_ROOT}}/myapp
+        run: dotnet publish src/Catalog.Api/Catalog.Api.csproj -c Release -o ${{env.DOTNET_ROOT}}/myapp --no-self-contained
 
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
@@ -62,4 +59,4 @@ jobs:
           app-name: 'catalog-api-posarqfiap2026'
           slot-name: 'Production'
           package: .
-
+          startup-command: 'dotnet Catalog.Api.dll'
