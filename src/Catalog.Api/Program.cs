@@ -1,15 +1,14 @@
-﻿using Serilog;
-using OpenTelemetry.Trace;
+﻿using Azure.Messaging.ServiceBus;
 using Catalog.Api.Configurations;
 using Catalog.Api.Middlewares;
 using Catalog.Application.Interfaces;
 using Catalog.Application.Services;
-using Catalog.Domain.Dto;
 using Catalog.Domain.Interfaces;
 using Catalog.Infra.Data;
 using Catalog.Infra.MessageBus;
 using Catalog.Infra.Repositories;
 using Microsoft.EntityFrameworkCore;
+using Serilog;
 using Users.Api.Configurations;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -25,13 +24,19 @@ builder.Logging.ClearProviders();
 builder.Logging.AddSerilog(Log.Logger, dispose: true);
 
 builder.Services.AddAuthConfiguration(builder.Configuration);
-// RabbitMQ
-builder.Services.Configure<RabbitMqSettings>(
-    builder.Configuration.GetSection("RabbitMQ"));
+
+// ServiceBus
+builder.Services.AddSingleton<IServiceBus, ServiceBus>();
+builder.Services.AddSingleton<ServiceBusClient>(provider =>
+{
+	var connectionString = builder.Configuration["ServiceBus:ConnectionString"];
+	return new ServiceBusClient(connectionString);
+});
+builder.Services.AddHostedService<ServiceBusConsumer>();
 
 // EF Core
 builder.Services.AddDbContext<AppDbContext>(opt =>
-    opt.UseSqlServer(builder.Configuration.GetConnectionString("SetupConnection")));
+    opt.UseSqlServer(builder.Configuration.GetConnectionString("SqlConnection")));
 
 // Services
 builder.Services.AddScoped<IGameService, GameService>();
@@ -41,10 +46,6 @@ builder.Services.AddScoped<IOrderService, OrderService>();
 builder.Services.AddScoped<IGameRepository, GameRepository>();
 builder.Services.AddScoped<IOrderRepository, OrderRepository>();
 builder.Services.AddScoped<IUserGameRepository, UserGameRepository>();
-
-// Message Bus
-builder.Services.AddScoped<IRabbitMqPublisher, RabbitMqPublisher>();
-builder.Services.AddHostedService<PaymentProcessedConsumer>();
 
 // Http context accessor required by middlewares
 builder.Services.AddHttpContextAccessor();

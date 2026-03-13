@@ -3,41 +3,23 @@ using Catalog.Domain.Dto;
 using Catalog.Domain.Dto.Events;
 using Catalog.Domain.Entity;
 using Catalog.Domain.Interfaces;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
 namespace Catalog.Application.Services;
 
-public class OrderService : IOrderService
-{
-    private readonly IOrderRepository _orderRepository;
-    private readonly IGameRepository _gameRepository;
-    private readonly IUserGameRepository _userGameRepository;
-    private readonly IRabbitMqPublisher _rabbitMqPublisher;
-    private readonly ILogger<OrderService> _logger;
-
-    private const string OrderPlacedQueueName = "OrderPlacedEvent";
-
-    public OrderService(
-        IOrderRepository orderRepository,
-        IGameRepository gameRepository,
-        IUserGameRepository userGameRepository,
-        IRabbitMqPublisher rabbitMqPublisher,
-        ILogger<OrderService> logger)
-    {
-        _orderRepository = orderRepository;
-        _gameRepository = gameRepository;
-        _userGameRepository = userGameRepository;
-        _rabbitMqPublisher = rabbitMqPublisher;
-        _logger = logger;
-    }
-
+public class OrderService(IOrderRepository _orderRepository, IGameRepository _gameRepository, 
+    IUserGameRepository _userGameRepository, IServiceBus _serviceBus, IConfiguration _configuration , ILogger<OrderService> _logger) : IOrderService
+{    
     public async Task<Order> CreateOrderAsync(CreateOrderDto dto)
     {
         _logger.LogTrace("Iniciando CreateOrderAsync para UserId {UserId}, GameId {GameId}", dto.UserId, dto.GameId);
         _logger.LogInformation("Iniciando criação de pedido. Usuário: {UserId}, Jogo: {GameId}", dto.UserId, dto.GameId);
         try
         {
-            var game = await _gameRepository.GetByIdAsync(dto.GameId);
+			string OrderPlacedQueueName = _configuration["ServiceBus:QueueNameOrderPlaced"];
+
+			var game = await _gameRepository.GetByIdAsync(dto.GameId);
             if (game is null || !game.Active || !game.Published)
             {
                 _logger.LogWarning("Jogo inválido para compra. GameId: {GameId}, Ativo: {Active}, Publicado: {Published}", dto.GameId, game?.Active, game?.Published);
@@ -70,7 +52,7 @@ public class OrderService : IOrderService
             };
 
             _logger.LogInformation("Publicando OrderPlacedEvent na fila {QueueName} para OrderId {OrderId}", OrderPlacedQueueName, order.Id);
-            await _rabbitMqPublisher.PublishAsync(evt, OrderPlacedQueueName);
+            await _serviceBus.PublishAsync(OrderPlacedQueueName, evt);
             _logger.LogTrace("OrderPlacedEvent publicado para OrderId {OrderId}", order.Id);
 
             _logger.LogTrace("Finalizando CreateOrderAsync para OrderId {OrderId}", order.Id);
