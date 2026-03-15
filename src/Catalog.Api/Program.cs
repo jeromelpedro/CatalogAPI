@@ -75,7 +75,7 @@ using (var scope = app.Services.CreateScope())
 		logger.LogInformation("Tentando conectar ao banco de dados...");
 		logger.LogInformation("Connection string: {ConnectionString}", connectionString);
 
-		db.Database.Migrate();
+		//db.Database.Migrate();
 
 		logger.LogInformation("Migrate executado com sucesso.");
 	}
