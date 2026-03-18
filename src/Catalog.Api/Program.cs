@@ -7,21 +7,24 @@ using Catalog.Domain.Interfaces;
 using Catalog.Infra.Data;
 using Catalog.Infra.MessageBus;
 using Catalog.Infra.Repositories;
+using Microsoft.ApplicationInsights.Extensibility;
 using Microsoft.EntityFrameworkCore;
+using OpenTelemetry.Trace;
 using Serilog;
 using Users.Api.Configurations;
 
 var builder = WebApplication.CreateBuilder(args);
 
-Log.Logger = new LoggerConfiguration()
+builder.Services.AddApplicationInsightsTelemetry();
+
+builder.Host.UseSerilog((_, services, loggerConfiguration) => loggerConfiguration
 	.MinimumLevel.Verbose()
 	.Enrich.FromLogContext()
 	.Enrich.With(new Catalog.Api.Serilog.ActivityEnricher())
 	.WriteTo.Console()
-	.CreateLogger();
-
-builder.Logging.ClearProviders();
-builder.Logging.AddSerilog(Log.Logger, dispose: true);
+	.WriteTo.ApplicationInsights(
+		services.GetRequiredService<TelemetryConfiguration>(),
+		TelemetryConverter.Traces));
 
 builder.Services.AddAuthConfiguration(builder.Configuration);
 
