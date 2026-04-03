@@ -26,6 +26,7 @@ Esta API fornece endpoints para autenticação (`Login`) e para operações CRUD
 - .NET 9
 - ASP.NET Core Web API
 - Entity Framework Core (SQL Server)
+- MongoDB (avaliações de jogos)
 - Elasticsearch
 - Docker / Docker Compose
 - RabbitMQ
@@ -63,8 +64,9 @@ Valores padrão do repositório (exemplos):
 > Atenção: troque todas as credenciais antes de usar em produção.
 
 ## Executando com Docker Compose (recomendado)
-O arquivo `docker-compose.yaml` sobe três serviços:
+O arquivo `docker-compose.yaml` sobe os serviços:
 - `mssql` (SQL Server 2022)
+- `mongo` (armazenamento de avaliações)
 - `rabbitmq` (com management UI)
 - `api` (construída pelo `Dockerfile`)
 
@@ -116,6 +118,10 @@ Base: `http://localhost:5063/api`
 	- Lista os jogos de determinado usuário.
 - GET `/api/Games/search?q={termo}`
 	- Busca avançada no Elasticsearch com fuzzy search e ordenação por relevância.
+- POST `/api/Games/{id}/reviews`
+	- Adiciona uma avaliação para o jogo `{id}` em MongoDB.
+- GET `/api/Games/{id}/reviews`
+	- Lista avaliações do jogo `{id}` a partir do MongoDB.
 - DELETE `/api/Games/{id}`
 	- Exclui um jogo.
 - PUT `/api/Games/{id}`
