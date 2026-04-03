@@ -11,11 +11,13 @@ namespace Catalog.Api.Controllers;
 public class GamesController : ControllerBase
 {
     private readonly IGameService _gameService;
+    private readonly IGameSearchService _gameSearchService;
     private readonly ILogger<GamesController> _logger;
 
-    public GamesController(IGameService gameService, ILogger<GamesController> logger)
+    public GamesController(IGameService gameService, IGameSearchService gameSearchService, ILogger<GamesController> logger)
     {
         _gameService = gameService;
+        _gameSearchService = gameSearchService;
         _logger = logger;
     }
 
@@ -107,5 +109,29 @@ public class GamesController : ControllerBase
         _logger.LogTrace("Fluxo Delete finalizado em GamesController para Id {Id}", id);
         _logger.LogInformation("Jogo {Id} deletado com sucesso", id);
         return NoContent();
+    }
+
+    [HttpGet("search")]
+    public async Task<ActionResult<IEnumerable<GameDto>>> Search([FromQuery] string q)
+    {
+        _logger.LogTrace("Iniciando fluxo Search em GamesController para query '{Query}'", q);
+        _logger.LogInformation("Buscando jogos com query '{Query}'", q);
+        var games = await _gameSearchService.SearchAsync(q);
+        _logger.LogTrace("Fluxo Search finalizado em GamesController para query '{Query}'", q);
+        return Ok(games);
+    }
+
+    [HttpPost("internal/reindex")]
+    public async Task<IActionResult> ReindexAllGames()
+    {
+        _logger.LogTrace("Iniciando fluxo ReindexAllGames em GamesController");
+        _logger.LogInformation("Disparando reindexação completa de jogos no Elasticsearch");
+
+        var indexedCount = await _gameSearchService.ReindexAllAsync();
+
+        _logger.LogInformation("Reindexação concluída com {Count} jogo(s) indexado(s)", indexedCount);
+        _logger.LogTrace("Fluxo ReindexAllGames finalizado em GamesController");
+
+        return Ok(new { indexed = indexedCount });
     }
 }

@@ -3,7 +3,7 @@ services:
     image: mcr.microsoft.com/mssql/server:2022-latest
     container_name: cloudgames-catalog-mssql
     ports:
-      - "1434:1434" # porta diferente para evitar conflito local
+      - "1434:1433" # porta diferente para evitar conflito local
     environment:
       ACCEPT_EULA: "Y"
       SA_PASSWORD: "SenhaForte123!"
@@ -12,6 +12,32 @@ services:
       - catalog_mssql_data:/var/opt/mssql
     networks:
       - cloudgames-network
+    healthcheck:
+      test: ["CMD-SHELL", "sqlcmd -S localhost,1433 -U sa -P \"SenhaForte123!\" -Q \"SELECT 1\" || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 40s
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.13.4
+    container_name: cloudgames-elasticsearch
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m
+    ports:
+      - "9200:9200"
+    volumes:
+      - catalog_elasticsearch_data:/usr/share/elasticsearch/data
+    networks:
+      - cloudgames-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s http://localhost:9200/_cluster/health | grep -q '\"status\":\"green\"\\|\"status\":\"yellow\"'"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 60s
 
   api:
     build:
@@ -26,6 +52,7 @@ services:
 
       ConnectionStrings__SetupConnection:   "Server=mssql,1433;Database=master;User Id=sa;Password=SenhaForte123!;TrustServerCertificate=True;"
       ConnectionStrings__DefaultConnection: "Server=mssql,1433;Database=dbCatalog;User Id=usuario_app;Password=SenhaForte123!;TrustServerCertificate=True;"
+      ConnectionStrings__SqlConnection: "Server=mssql,1433;Database=dbCatalog;User Id=usuario_app;Password=SenhaForte123!;TrustServerCertificate=True;"
 
       Jwt__Key: "chave-secreta-super-forte-123456"
       Jwt__Issuer: "CloudGamesAPI"
@@ -37,9 +64,12 @@ services:
       RabbitMq__Password: "guest"
       RabbitMq__ExchangeName: "cloudgames.topic"
 
+      ServiceBus__ConnectionString: "Endpoint=sb://localhost/;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=SAS_KEY_HERE"
+      ServiceBus__QueueNameUserCreated: "user-created"
+
+      Elasticsearch__Uri: "http://elasticsearch:9200"
     volumes:
       - dataprotection_keys:/root/.aspnet/DataProtection-Keys
-
     networks:
       - cloudgames-network
 
@@ -50,3 +80,4 @@ networks:
 volumes:
   catalog_mssql_data:
   dataprotection_keys:
+  catalog_elasticsearch_data:

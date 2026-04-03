@@ -26,6 +26,7 @@ Esta API fornece endpoints para autenticação (`Login`) e para operações CRUD
 - .NET 9
 - ASP.NET Core Web API
 - Entity Framework Core (SQL Server)
+- Elasticsearch
 - Docker / Docker Compose
 - RabbitMQ
 - JWT (autenticação)
@@ -113,10 +114,20 @@ Base: `http://localhost:5063/api`
 	- Lista o jogos específico por Id.
 - GET `/api/ListGamesByUserId/{userId}`
 	- Lista os jogos de determinado usuário.
+- GET `/api/Games/search?q={termo}`
+	- Busca avançada no Elasticsearch com fuzzy search e ordenação por relevância.
 - DELETE `/api/Games/{id}`
 	- Exclui um jogo.
 - PUT `/api/Games/{id}`
 	- Edita um jogo.
+
+## Busca avançada e reindexação (Elasticsearch)
+- O endpoint `/api/Games/search` usa índice dedicado no Elasticsearch (independente das consultas do banco relacional).
+- Sempre que um jogo é criado ou editado, a API atualiza automaticamente o índice.
+- Para manutenção interna, existe o endpoint:
+	- POST `/api/Games/internal/reindex`
+	- Reindexa toda a base de jogos do SQL Server para o Elasticsearch e retorna quantidade indexada.
+	- A rota é interna e aparece no Swagger para facilitar testes operacionais em ambiente local.
 
 ## DTOs / Exemplos de payload
 Campos reais extraídos do código (arquivo `src/Catalog.Domain/Dto`):

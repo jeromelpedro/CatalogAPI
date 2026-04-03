@@ -9,11 +9,13 @@ namespace Catalog.Application.Services;
 public class GameService : IGameService
 {
     private readonly IGameRepository _gameRepository;
+    private readonly IGameSearchRepository _searchRepository;
     private readonly ILogger<GameService> _logger;
 
-    public GameService(IGameRepository gameRepository, ILogger<GameService> logger)
+    public GameService(IGameRepository gameRepository, IGameSearchRepository searchRepository, ILogger<GameService> logger)
     {
         _gameRepository = gameRepository;
+        _searchRepository = searchRepository;
         _logger = logger;
     }
 
@@ -150,6 +152,8 @@ public class GameService : IGameService
             await _gameRepository.AddAsync(game);
             _logger.LogTrace("Persistência concluída em GameService.CreateAsync para Id {Id}", game.Id);
 
+            await IndexSilentlyAsync(game);
+
             _logger.LogInformation("Jogo criado com sucesso. Id: {Id}, Nome: {Name}", game.Id, game.Name);
 
             return new GameDto
@@ -195,6 +199,8 @@ public class GameService : IGameService
             await _gameRepository.UpdateAsync(game);
             _logger.LogTrace("Persistência concluída em GameService.UpdateAsync para Id {Id}", id);
 
+            await IndexSilentlyAsync(game);
+
             _logger.LogInformation("Jogo atualizado com sucesso. Id: {Id}, Nome: {Name}", game.Id, game.Name);
             _logger.LogTrace("Finalizando UpdateAsync em GameService para Id {Id}", id);
 
@@ -233,6 +239,18 @@ public class GameService : IGameService
         {
             _logger.LogError(ex, "Erro ao deletar jogo com Id {Id}", id);
             throw;
+        }
+    }
+
+    private async Task IndexSilentlyAsync(Game game)
+    {
+        try
+        {
+            await _searchRepository.IndexAsync(game);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Falha ao indexar jogo Id {Id} no Elasticsearch — operação principal não foi afetada", game.Id);
         }
     }
 }

@@ -7,6 +7,7 @@ using Catalog.Domain.Interfaces;
 using Catalog.Infra.Data;
 using Catalog.Infra.MessageBus;
 using Catalog.Infra.Repositories;
+using Elastic.Clients.Elasticsearch;
 using Microsoft.ApplicationInsights.Extensibility;
 using Microsoft.EntityFrameworkCore;
 using OpenTelemetry.Trace;
@@ -49,6 +50,18 @@ builder.Services.AddScoped<IOrderService, OrderService>();
 builder.Services.AddScoped<IGameRepository, GameRepository>();
 builder.Services.AddScoped<IOrderRepository, OrderRepository>();
 builder.Services.AddScoped<IUserGameRepository, UserGameRepository>();
+builder.Services.AddScoped<IGameSearchRepository, ElasticsearchGameRepository>();
+
+// Elasticsearch
+builder.Services.AddSingleton<ElasticsearchClient>(_ =>
+{
+	var uri = builder.Configuration["Elasticsearch:Uri"] ?? "http://localhost:9200";
+	var settings = new ElasticsearchClientSettings(new Uri(uri));
+	return new ElasticsearchClient(settings);
+});
+
+// Search service
+builder.Services.AddScoped<IGameSearchService, GameSearchService>();
 
 // Http context accessor required by middlewares
 builder.Services.AddHttpContextAccessor();
@@ -67,6 +80,8 @@ var app = builder.Build();
 //    db.Database.Migrate();
 //}
 
+// DatabaseInitializer.EnsureDatabase(builder.Configuration);
+
 using (var scope = app.Services.CreateScope())
 {
 	var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
@@ -78,7 +93,7 @@ using (var scope = app.Services.CreateScope())
 		logger.LogInformation("Tentando conectar ao banco de dados...");
 		logger.LogInformation("Connection string: {ConnectionString}", connectionString);
 
-		//db.Database.Migrate();
+		// db.Database.Migrate();
 
 		logger.LogInformation("Migrate executado com sucesso.");
 	}
