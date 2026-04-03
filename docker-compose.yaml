@@ -13,11 +13,11 @@ services:
     networks:
       - cloudgames-network
     healthcheck:
-      test: ["CMD-SHELL", "sqlcmd -S localhost,1433 -U sa -P \"SenhaForte123!\" -Q \"SELECT 1\" || exit 1"]
+      test: ["CMD-SHELL", "(/opt/mssql-tools18/bin/sqlcmd -C -S localhost,1433 -U sa -P \"SenhaForte123!\" -Q \"SELECT 1\" || /opt/mssql-tools/bin/sqlcmd -S localhost,1433 -U sa -P \"SenhaForte123!\" -Q \"SELECT 1\") || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 10
-      start_period: 40s
+      start_period: 70s
 
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.13.4
@@ -38,6 +38,22 @@ services:
       timeout: 10s
       retries: 10
       start_period: 60s
+
+  mongo:
+    image: mongo:7.0
+    container_name: cloudgames-catalog-mongo
+    ports:
+      - "27017:27017"
+    volumes:
+      - catalog_mongo_data:/data/db
+    networks:
+      - cloudgames-network
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
 
   api:
     build:
@@ -68,6 +84,16 @@ services:
       ServiceBus__QueueNameUserCreated: "user-created"
 
       Elasticsearch__Uri: "http://elasticsearch:9200"
+      MongoDb__ConnectionString: "mongodb://mongo:27017"
+      MongoDb__Database: "catalogdb"
+      MongoDb__ReviewCollection: "game_reviews"
+    depends_on:
+      mssql:
+        condition: service_healthy
+      elasticsearch:
+        condition: service_healthy
+      mongo:
+        condition: service_healthy
     volumes:
       - dataprotection_keys:/root/.aspnet/DataProtection-Keys
     networks:
@@ -81,3 +107,4 @@ volumes:
   catalog_mssql_data:
   dataprotection_keys:
   catalog_elasticsearch_data:
+  catalog_mongo_data:

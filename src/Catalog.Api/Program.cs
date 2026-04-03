@@ -10,6 +10,7 @@ using Catalog.Infra.Repositories;
 using Elastic.Clients.Elasticsearch;
 using Microsoft.ApplicationInsights.Extensibility;
 using Microsoft.EntityFrameworkCore;
+using MongoDB.Driver;
 using OpenTelemetry.Trace;
 using Serilog;
 using Users.Api.Configurations;
@@ -45,12 +46,28 @@ builder.Services.AddDbContext<AppDbContext>(opt =>
 // Services
 builder.Services.AddScoped<IGameService, GameService>();
 builder.Services.AddScoped<IOrderService, OrderService>();
+builder.Services.AddScoped<IGameReviewService, GameReviewService>();
 
 // Repositories
 builder.Services.AddScoped<IGameRepository, GameRepository>();
 builder.Services.AddScoped<IOrderRepository, OrderRepository>();
 builder.Services.AddScoped<IUserGameRepository, UserGameRepository>();
 builder.Services.AddScoped<IGameSearchRepository, ElasticsearchGameRepository>();
+builder.Services.AddScoped<IGameReviewRepository, MongoGameReviewRepository>();
+
+// MongoDB
+builder.Services.AddSingleton<IMongoClient>(_ =>
+{
+	var connectionString = builder.Configuration["MongoDb:ConnectionString"] ?? "mongodb://localhost:27017";
+	return new MongoClient(connectionString);
+});
+
+builder.Services.AddSingleton(sp =>
+{
+	var databaseName = builder.Configuration["MongoDb:Database"] ?? "catalogdb";
+	var client = sp.GetRequiredService<IMongoClient>();
+	return client.GetDatabase(databaseName);
+});
 
 // Elasticsearch
 builder.Services.AddSingleton<ElasticsearchClient>(_ =>

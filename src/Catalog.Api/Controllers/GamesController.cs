@@ -12,12 +12,14 @@ public class GamesController : ControllerBase
 {
     private readonly IGameService _gameService;
     private readonly IGameSearchService _gameSearchService;
+    private readonly IGameReviewService _gameReviewService;
     private readonly ILogger<GamesController> _logger;
 
-    public GamesController(IGameService gameService, IGameSearchService gameSearchService, ILogger<GamesController> logger)
+    public GamesController(IGameService gameService, IGameSearchService gameSearchService, IGameReviewService gameReviewService, ILogger<GamesController> logger)
     {
         _gameService = gameService;
         _gameSearchService = gameSearchService;
+        _gameReviewService = gameReviewService;
         _logger = logger;
     }
 
@@ -133,5 +135,38 @@ public class GamesController : ControllerBase
         _logger.LogTrace("Fluxo ReindexAllGames finalizado em GamesController");
 
         return Ok(new { indexed = indexedCount });
+    }
+
+    [HttpPost("{id}/reviews")]
+    public async Task<ActionResult<GameReviewDto>> AddReview(string id, [FromBody] CreateGameReviewDto dto)
+    {
+        _logger.LogTrace("Iniciando fluxo AddReview em GamesController para GameId {GameId}", id);
+        _logger.LogInformation("Adicionando avaliação para jogo {GameId} pelo usuário {UserId}", id, dto.UserId);
+
+        try
+        {
+            var review = await _gameReviewService.AddReviewAsync(id, dto);
+
+            _logger.LogTrace("Fluxo AddReview finalizado em GamesController para GameId {GameId}", id);
+            return CreatedAtAction(nameof(GetReviewsByGameId), new { id }, review);
+        }
+        catch (ArgumentOutOfRangeException ex)
+        {
+            _logger.LogWarning(ex, "Nota inválida ao adicionar avaliação para GameId {GameId}", id);
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
+    [HttpGet("{id}/reviews")]
+    public async Task<ActionResult<IEnumerable<GameReviewDto>>> GetReviewsByGameId(string id)
+    {
+        _logger.LogTrace("Iniciando fluxo GetReviewsByGameId em GamesController para GameId {GameId}", id);
+        _logger.LogInformation("Listando avaliações para jogo {GameId}", id);
+
+        var reviews = await _gameReviewService.GetReviewsByGameIdAsync(id);
+
+        _logger.LogTrace("Fluxo GetReviewsByGameId finalizado em GamesController para GameId {GameId}", id);
+        _logger.LogInformation("Foram retornadas {Count} avaliações para GameId {GameId}", reviews.Count(), id);
+        return Ok(reviews);
     }
 }
