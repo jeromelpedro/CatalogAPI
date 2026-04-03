@@ -19,6 +19,26 @@ services:
       retries: 10
       start_period: 40s
 
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.13.4
+    container_name: cloudgames-elasticsearch
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m
+    ports:
+      - "9200:9200"
+    volumes:
+      - catalog_elasticsearch_data:/usr/share/elasticsearch/data
+    networks:
+      - cloudgames-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s http://localhost:9200/_cluster/health | grep -q '\"status\":\"green\"\\|\"status\":\"yellow\"'"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 60s
+
   api:
     build:
       context: .
@@ -47,9 +67,9 @@ services:
       ServiceBus__ConnectionString: "Endpoint=sb://localhost/;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=SAS_KEY_HERE"
       ServiceBus__QueueNameUserCreated: "user-created"
 
+      Elasticsearch__Uri: "http://elasticsearch:9200"
     volumes:
       - dataprotection_keys:/root/.aspnet/DataProtection-Keys
-
     networks:
       - cloudgames-network
 
@@ -60,3 +80,4 @@ networks:
 volumes:
   catalog_mssql_data:
   dataprotection_keys:
+  catalog_elasticsearch_data:
