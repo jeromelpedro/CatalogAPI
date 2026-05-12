@@ -5,5 +5,7 @@
     <Project Path="src/Catalog.Domain/Catalog.Domain.csproj" Id="962460ba-77f9-449f-8b51-4346bc9c059b" />
     <Project Path="src/Catalog.Infra/Catalog.Infra.csproj" Id="fce845c8-eda4-4bde-8094-5838181f70f6" />
   </Folder>
-  <Folder Name="/tests/" />
+  <Folder Name="/tests/">
+    <Project Path="tests/Catalog.Tests/Catalog.Tests.csproj" Id="876d73ea-e6a1-4d17-b3ca-14338d5f44de" />
+  </Folder>
 </Solution>
