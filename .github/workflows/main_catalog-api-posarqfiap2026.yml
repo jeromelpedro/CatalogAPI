@@ -130,33 +130,13 @@ jobs:
           kubectl get namespace ${{ env.AKS_NAMESPACE }} || \
           kubectl create namespace ${{ env.AKS_NAMESPACE }}
 
-      - name: Configure Workload Identity federated credential
+      - name: Create Key Vault SP credentials secret
         run: |
-          OIDC_ISSUER=$(az aks show \
-            --resource-group ${{ env.AKS_RESOURCE_GROUP }} \
-            --name ${{ env.AKS_CLUSTER_NAME }} \
-            --query "oidcIssuerProfile.issuerUrl" -o tsv)
-
-          echo "AKS OIDC Issuer: $OIDC_ISSUER"
-
-          EXISTING=$(az ad app federated-credential list \
-            --id ${{ secrets.AZURE_CLIENT_ID }} \
-            --query "[?name=='catalog-api-aks-federated'].name" -o tsv 2>/dev/null || echo "")
-
-          if [ -z "$EXISTING" ]; then
-            echo "Creating federated identity credential..."
-            az ad app federated-credential create \
-              --id ${{ secrets.AZURE_CLIENT_ID }} \
-              --parameters "{
-                \"name\": \"catalog-api-aks-federated\",
-                \"issuer\": \"${OIDC_ISSUER}\",
-                \"subject\": \"system:serviceaccount:${{ env.AKS_NAMESPACE }}:catalog-api\",
-                \"audiences\": [\"api://AzureADTokenExchange\"]
-              }"
-            echo "Federated identity credential created."
-          else
-            echo "Federated identity credential already exists, skipping."
-          fi
+          kubectl create secret generic catalog-api-sp-creds \
+            --from-literal=clientid=${{ secrets.AZURE_CLIENT_ID }} \
+            --from-literal=clientsecret=${{ secrets.AZURE_CLIENT_SECRET }} \
+            --namespace=${{ env.AKS_NAMESPACE }} \
+            --dry-run=client -o yaml | kubectl apply -f -
 
       - name: Render SecretProviderClass
         run: |
@@ -166,13 +146,6 @@ jobs:
             -e "s|__AZURE_TENANT_ID__|${{ env.AZURE_TENANT_ID }}|g" \
             -e "s|__AZURE_CLIENT_ID__|${{ secrets.AZURE_CLIENT_ID }}|g" \
             k8s/secretproviderclass.yaml > .rendered/secretproviderclass.yaml
-
-      - name: Render ServiceAccount
-        run: |
-          mkdir -p .rendered
-          sed \
-            -e "s|__AZURE_CLIENT_ID__|${{ secrets.AZURE_CLIENT_ID }}|g" \
-            k8s/serviceaccount.yaml > .rendered/serviceaccount.yaml
 
       - name: Create ACR pull secret
         run: |
@@ -186,7 +159,7 @@ jobs:
 
       - name: Apply Kubernetes manifests
         run: |
-          kubectl apply -f .rendered/serviceaccount.yaml -n ${{ env.AKS_NAMESPACE }}
+          kubectl apply -f k8s/serviceaccount.yaml -n ${{ env.AKS_NAMESPACE }}
           kubectl apply -f .rendered/secretproviderclass.yaml -n ${{ env.AKS_NAMESPACE }}
           kubectl apply -f k8s/configmap.yaml -n ${{ env.AKS_NAMESPACE }}
 

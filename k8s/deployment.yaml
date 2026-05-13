@@ -13,7 +13,6 @@ spec:
     metadata:
       labels:
         app: catalog-api
-        azure.workload.identity/use: "true"
     spec:
       serviceAccountName: catalog-api
       containers:
@@ -60,3 +59,5 @@ spec:
             readOnly: true
             volumeAttributes:
               secretProviderClass: catalog-api-kv
+            nodePublishSecretRef:
+              name: catalog-api-sp-creds
