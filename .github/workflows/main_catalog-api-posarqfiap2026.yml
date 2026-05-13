@@ -29,7 +29,7 @@ jobs:
       AKS_CLUSTER_NAME: ${{ secrets.AKS_CLUSTER_NAME }}
       AKS_RESOURCE_GROUP: ${{ secrets.AKS_RESOURCE_GROUP }}
       AKS_NAMESPACE: ${{ secrets.AKS_NAMESPACE }}
-      KEYVAULT_NAME: ${{ vars.KEYVAULT_NAME }}
+      KEYVAULT_NAME: ${{ secrets.KEYVAULT_NAME != '' && secrets.KEYVAULT_NAME || vars.KEYVAULT_NAME != '' && vars.KEYVAULT_NAME || 'kvcloudgamesfiap' }}
 
     steps:
       - name: Checkout
@@ -150,11 +150,21 @@ jobs:
           sed \
             -e "s|__KEYVAULT_NAME__|$KEYVAULT_NAME|g" \
             -e "s|__AZURE_TENANT_ID__|$AZURE_TENANT_ID|g" \
+            -e "s|__AZURE_CLIENT_ID__|$AZURE_CLIENT_ID|g" \
             k8s/secretproviderclass.yaml > .rendered/secretproviderclass.yaml
+
+      - name: Render ServiceAccount
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .rendered
+          sed \
+            -e "s|__AZURE_CLIENT_ID__|$AZURE_CLIENT_ID|g" \
+            k8s/serviceaccount.yaml > .rendered/serviceaccount.yaml
 
       - name: Apply ServiceAccount
         shell: bash
-        run: kubectl apply -n "$AKS_NAMESPACE" -f k8s/serviceaccount.yaml
+        run: kubectl apply -n "$AKS_NAMESPACE" -f .rendered/serviceaccount.yaml
 
       - name: Apply SecretProviderClass
         shell: bash
