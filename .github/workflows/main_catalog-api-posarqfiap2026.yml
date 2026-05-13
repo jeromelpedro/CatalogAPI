@@ -130,6 +130,34 @@ jobs:
           kubectl get namespace ${{ env.AKS_NAMESPACE }} || \
           kubectl create namespace ${{ env.AKS_NAMESPACE }}
 
+      - name: Configure Workload Identity federated credential
+        run: |
+          OIDC_ISSUER=$(az aks show \
+            --resource-group ${{ env.AKS_RESOURCE_GROUP }} \
+            --name ${{ env.AKS_CLUSTER_NAME }} \
+            --query "oidcIssuerProfile.issuerUrl" -o tsv)
+
+          echo "AKS OIDC Issuer: $OIDC_ISSUER"
+
+          EXISTING=$(az ad app federated-credential list \
+            --id ${{ secrets.AZURE_CLIENT_ID }} \
+            --query "[?name=='catalog-api-aks-federated'].name" -o tsv 2>/dev/null || echo "")
+
+          if [ -z "$EXISTING" ]; then
+            echo "Creating federated identity credential..."
+            az ad app federated-credential create \
+              --id ${{ secrets.AZURE_CLIENT_ID }} \
+              --parameters "{
+                \"name\": \"catalog-api-aks-federated\",
+                \"issuer\": \"${OIDC_ISSUER}\",
+                \"subject\": \"system:serviceaccount:${{ env.AKS_NAMESPACE }}:catalog-api\",
+                \"audiences\": [\"api://AzureADTokenExchange\"]
+              }"
+            echo "Federated identity credential created."
+          else
+            echo "Federated identity credential already exists, skipping."
+          fi
+
       - name: Render SecretProviderClass
         run: |
           mkdir -p .rendered
