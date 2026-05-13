@@ -3,7 +3,7 @@ name: Build and deploy Catalog API to AKS
 on:
   push:
     branches:
-      - main
+      - feature/fase4
   workflow_dispatch:
 
 env:
