@@ -16,8 +16,10 @@ namespace Catalog.Infra.MessageBus
 	
 		protected override async Task ExecuteAsync(CancellationToken stoppingToken)
 		{
-			var queueNamePaymentProcessed = _configuration["ServiceBus:QueueNamePaymentProcessed"];
-			var subscriptionPaymentProcessed = _configuration["ServiceBus:SubscriptionPaymentProcessed"];			
+			var queueNamePaymentProcessed = _configuration["ServiceBus:QueueNamePaymentProcessed"]
+				?? throw new InvalidOperationException("ServiceBus:QueueNamePaymentProcessed não configurado.");
+			var subscriptionPaymentProcessed = _configuration["ServiceBus:SubscriptionPaymentProcessed"]
+				?? throw new InvalidOperationException("ServiceBus:SubscriptionPaymentProcessed não configurado.");            
 
 			_processor = _client.CreateProcessor(queueNamePaymentProcessed, subscriptionPaymentProcessed, new ServiceBusProcessorOptions
 			{

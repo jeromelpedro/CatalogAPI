@@ -3,17 +3,17 @@ services:
     image: mcr.microsoft.com/mssql/server:2022-latest
     container_name: cloudgames-catalog-mssql
     ports:
-      - "1434:1433" # porta diferente para evitar conflito local
+      - "1434:1433"
     environment:
       ACCEPT_EULA: "Y"
-      SA_PASSWORD: "SenhaForte123!"
+      SA_PASSWORD: "<SET_IN_ENV>"
       MSSQL_PID: Developer
     volumes:
       - catalog_mssql_data:/var/opt/mssql
     networks:
       - cloudgames-network
     healthcheck:
-      test: ["CMD-SHELL", "(/opt/mssql-tools18/bin/sqlcmd -C -S localhost,1433 -U sa -P \"SenhaForte123!\" -Q \"SELECT 1\" || /opt/mssql-tools/bin/sqlcmd -S localhost,1433 -U sa -P \"SenhaForte123!\" -Q \"SELECT 1\") || exit 1"]
+      test: ["CMD-SHELL", "(/opt/mssql-tools18/bin/sqlcmd -C -S localhost,1433 -U sa -P \"$${SA_PASSWORD}\" -Q \"SELECT 1\" || /opt/mssql-tools/bin/sqlcmd -S localhost,1433 -U sa -P \"$${SA_PASSWORD}\" -Q \"SELECT 1\") || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 10
@@ -66,22 +66,17 @@ services:
       ASPNETCORE_ENVIRONMENT: Production
       ASPNETCORE_URLS: "http://+:5063"
 
-      ConnectionStrings__SetupConnection:   "Server=mssql,1433;Database=master;User Id=sa;Password=SenhaForte123!;TrustServerCertificate=True;"
-      ConnectionStrings__DefaultConnection: "Server=mssql,1433;Database=dbCatalog;User Id=usuario_app;Password=SenhaForte123!;TrustServerCertificate=True;"
-      ConnectionStrings__SqlConnection: "Server=mssql,1433;Database=dbCatalog;User Id=usuario_app;Password=SenhaForte123!;TrustServerCertificate=True;"
+      ConnectionStrings__SetupConnection: "<SET_IN_ENV>"
+      ConnectionStrings__SqlConnection: "<SET_IN_ENV>"
 
-      Jwt__Key: "chave-secreta-super-forte-123456"
+      Jwt__Key: "<SET_IN_ENV>"
       Jwt__Issuer: "CloudGamesAPI"
       Jwt__Audience: "CloudGamesAPIClient"
 
-      RabbitMq__HostName: "cloudgames-rabbitmq"
-      RabbitMq__Port: "5672"
-      RabbitMq__UserName: "guest"
-      RabbitMq__Password: "guest"
-      RabbitMq__ExchangeName: "cloudgames.topic"
-
-      ServiceBus__ConnectionString: "Endpoint=sb://localhost/;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=SAS_KEY_HERE"
-      ServiceBus__QueueNameUserCreated: "user-created"
+      ServiceBus__ConnectionString: "<SET_IN_ENV>"
+      ServiceBus__QueueNameOrderPlaced: "OrderPlacedEvent"
+      ServiceBus__QueueNamePaymentProcessed: "PaymentProcessedEvent"
+      ServiceBus__SubscriptionPaymentProcessed: "PaymentProcessedSubscription"
 
       Elasticsearch__Uri: "http://elasticsearch:9200"
       MongoDb__ConnectionString: "mongodb://mongo:27017"

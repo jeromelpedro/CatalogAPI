@@ -1,4 +1,4 @@
-﻿using Azure.Messaging.ServiceBus;
+using Azure.Messaging.ServiceBus;
 using Catalog.Api.Configurations;
 using Catalog.Api.Middlewares;
 using Catalog.Application.Interfaces;
@@ -11,9 +11,8 @@ using Elastic.Clients.Elasticsearch;
 using Microsoft.ApplicationInsights.Extensibility;
 using Microsoft.EntityFrameworkCore;
 using MongoDB.Driver;
-using OpenTelemetry.Trace;
 using Serilog;
-using Users.Api.Configurations;
+using Serilog.Sinks.ApplicationInsights.TelemetryConverters;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -30,74 +29,62 @@ builder.Host.UseSerilog((_, services, loggerConfiguration) => loggerConfiguratio
 
 builder.Services.AddAuthConfiguration(builder.Configuration);
 
-// ServiceBus
 builder.Services.AddSingleton<IServiceBus, ServiceBus>();
-builder.Services.AddSingleton<ServiceBusClient>(provider =>
+builder.Services.AddSingleton<ServiceBusClient>(_ =>
 {
-	var connectionString = builder.Configuration["ServiceBus:ConnectionString"];
+	var connectionString = builder.Configuration["ServiceBus:ConnectionString"]
+		?? throw new InvalidOperationException("ServiceBus:ConnectionString não configurado.");
 	return new ServiceBusClient(connectionString);
 });
 builder.Services.AddHostedService<ServiceBusConsumer>();
 
-// EF Core
 builder.Services.AddDbContext<AppDbContext>(opt =>
-    opt.UseSqlServer(builder.Configuration.GetConnectionString("SqlConnection")));
+	opt.UseSqlServer(
+		builder.Configuration.GetConnectionString("SqlConnection")
+		?? throw new InvalidOperationException("ConnectionStrings:SqlConnection não configurada.")));
 
-// Services
 builder.Services.AddScoped<IGameService, GameService>();
 builder.Services.AddScoped<IOrderService, OrderService>();
 builder.Services.AddScoped<IGameReviewService, GameReviewService>();
+builder.Services.AddScoped<IGameSearchService, GameSearchService>();
 
-// Repositories
 builder.Services.AddScoped<IGameRepository, GameRepository>();
 builder.Services.AddScoped<IOrderRepository, OrderRepository>();
 builder.Services.AddScoped<IUserGameRepository, UserGameRepository>();
 builder.Services.AddScoped<IGameSearchRepository, ElasticsearchGameRepository>();
 builder.Services.AddScoped<IGameReviewRepository, MongoGameReviewRepository>();
 
-// MongoDB
 builder.Services.AddSingleton<IMongoClient>(_ =>
 {
-	var connectionString = builder.Configuration["MongoDb:ConnectionString"] ?? "mongodb://localhost:27017";
+	var connectionString = builder.Configuration["MongoDb:ConnectionString"]
+		?? throw new InvalidOperationException("MongoDb:ConnectionString não configurada.");
 	return new MongoClient(connectionString);
 });
 
 builder.Services.AddSingleton(sp =>
 {
-	var databaseName = builder.Configuration["MongoDb:Database"] ?? "catalogdb";
+	var databaseName = builder.Configuration["MongoDb:Database"]
+		?? throw new InvalidOperationException("MongoDb:Database não configurado.");
 	var client = sp.GetRequiredService<IMongoClient>();
 	return client.GetDatabase(databaseName);
 });
 
-// Elasticsearch
 builder.Services.AddSingleton<ElasticsearchClient>(_ =>
 {
-	var uri = builder.Configuration["Elasticsearch:Uri"] ?? "http://localhost:9200";
+	var uri = builder.Configuration["Elasticsearch:Uri"]
+		?? throw new InvalidOperationException("Elasticsearch:Uri não configurado.");
 	var settings = new ElasticsearchClientSettings(new Uri(uri));
 	return new ElasticsearchClient(settings);
 });
 
-// Search service
-builder.Services.AddScoped<IGameSearchService, GameSearchService>();
-
-// Http context accessor required by middlewares
 builder.Services.AddHttpContextAccessor();
 
-// API
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerConfiguration();
 
 var app = builder.Build();
-
-//using (var scope = app.Services.CreateScope())
-//{
-//    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-//    db.Database.Migrate();
-//}
-
-// DatabaseInitializer.EnsureDatabase(builder.Configuration);
 
 using (var scope = app.Services.CreateScope())
 {
@@ -106,13 +93,14 @@ using (var scope = app.Services.CreateScope())
 
 	try
 	{
-		var connectionString = db.Database.GetConnectionString();
-		logger.LogInformation("Tentando conectar ao banco de dados...");
-		logger.LogInformation("Connection string: {ConnectionString}", connectionString);
+		logger.LogInformation("Validando conexão com o banco de dados.");
 
-		// db.Database.Migrate();
+		if (!db.Database.CanConnect())
+		{
+			throw new InvalidOperationException("Não foi possível conectar ao banco de dados.");
+		}
 
-		logger.LogInformation("Migrate executado com sucesso.");
+		logger.LogInformation("Conexão com o banco validada com sucesso.");
 	}
 	catch (Exception ex)
 	{
@@ -121,13 +109,11 @@ using (var scope = app.Services.CreateScope())
 	}
 }
 
-app.UseSwagger();
-app.UseSwaggerUI();
+app.UseSwaggerConfiguration();
 
 app.UseErrorHandling();
 app.UseCorrelationId();
 app.UseRequestLogging();
-app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();

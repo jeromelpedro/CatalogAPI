@@ -12,7 +12,8 @@ namespace Catalog.Api.Configurations
 			services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 				.AddJwtBearer(options =>
 				{
-					var key = Encoding.UTF8.GetBytes(configuration["Jwt:Key"]!);
+					var key = Encoding.UTF8.GetBytes(
+						configuration["Jwt:Key"] ?? throw new InvalidOperationException("Jwt:Key não configurado."));
 					options.TokenValidationParameters = new TokenValidationParameters
 					{
 						ValidateIssuer = true,

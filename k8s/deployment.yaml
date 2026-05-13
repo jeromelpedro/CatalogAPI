@@ -13,20 +13,9 @@ spec:
     metadata:
       labels:
         app: catalog-api
+        azure.workload.identity/use: "true"
     spec:
-      initContainers:
-        - name: wait-for-rabbitmq
-          image: busybox
-          command:
-            - sh
-            - -c
-            - |
-              echo "Waiting for RabbitMQ..."
-              until nc -z cloudgames-rabbitmq 5672; do
-                echo "RabbitMQ not ready - sleeping"
-                sleep 3
-              done
-              echo "RabbitMQ reachable"
+      serviceAccountName: catalog-api
       containers:
         - name: catalog-api
           image: catalog-api:latest
@@ -39,6 +28,10 @@ spec:
                 name: catalog-api-config
             - secretRef:
                 name: catalog-api-secret
+          volumeMounts:
+            - name: secrets-store
+              mountPath: /mnt/secrets-store
+              readOnly: true
           resources:
             requests:
               memory: "128Mi"
@@ -60,3 +53,10 @@ spec:
             periodSeconds: 10
             timeoutSeconds: 3
             failureThreshold: 3
+      volumes:
+        - name: secrets-store
+          csi:
+            driver: secrets-store.csi.k8s.io
+            readOnly: true
+            volumeAttributes:
+              secretProviderClass: catalog-api-kv

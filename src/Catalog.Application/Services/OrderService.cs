@@ -17,7 +17,8 @@ public class OrderService(IOrderRepository _orderRepository, IGameRepository _ga
         _logger.LogInformation("Iniciando criação de pedido. Usuário: {UserId}, Jogo: {GameId}", dto.UserId, dto.GameId);
         try
         {
-			string OrderPlacedQueueName = _configuration["ServiceBus:QueueNameOrderPlaced"];
+			var orderPlacedQueueName = _configuration["ServiceBus:QueueNameOrderPlaced"]
+				?? throw new InvalidOperationException("ServiceBus:QueueNameOrderPlaced não configurado.");
 
 			var game = await _gameRepository.GetByIdAsync(dto.GameId);
             if (game is null || !game.Active || !game.Published)
@@ -51,8 +52,8 @@ public class OrderService(IOrderRepository _orderRepository, IGameRepository _ga
                 CreatedAt = order.CreatedAt
             };
 
-            _logger.LogInformation("Publicando OrderPlacedEvent na fila {QueueName} para OrderId {OrderId}", OrderPlacedQueueName, order.Id);
-            await _serviceBus.PublishAsync(OrderPlacedQueueName, evt);
+            _logger.LogInformation("Publicando OrderPlacedEvent na fila {QueueName} para OrderId {OrderId}", orderPlacedQueueName, order.Id);
+            await _serviceBus.PublishAsync(orderPlacedQueueName, evt);
             _logger.LogTrace("OrderPlacedEvent publicado para OrderId {OrderId}", order.Id);
 
             _logger.LogTrace("Finalizando CreateOrderAsync para OrderId {OrderId}", order.Id);

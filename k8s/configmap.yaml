@@ -6,11 +6,13 @@ metadata:
     app: catalog-api
 data:
   ASPNETCORE_ENVIRONMENT: "Production"
+  ASPNETCORE_URLS: "http://+:5063"
   ASPNETCORE_HTTP_PORTS: "5063"
   Jwt__Issuer: "CloudGamesAPI"
   Jwt__Audience: "CloudGamesAPIClient"
-  RabbitMq__HostName: "cloudgames-rabbitmq"
-  RabbitMq__Port: "5672"
-  RabbitMq__ExchangeName: "cloudgames.topic"
-  RabbitMq__QueueNameOrderPlaced: "OrderPlacedEvent"
-  RabbitMq__QueueNamePaymentProcessed: "PaymentProcessedEvent"
+  ServiceBus__QueueNameOrderPlaced: "OrderPlacedEvent"
+  ServiceBus__QueueNamePaymentProcessed: "PaymentProcessedEvent"
+  ServiceBus__SubscriptionPaymentProcessed: "PaymentProcessedSubscription"
+  Elasticsearch__Uri: "http://elasticsearch:9200"
+  MongoDb__Database: "catalogdb"
+  MongoDb__ReviewCollection: "game_reviews"

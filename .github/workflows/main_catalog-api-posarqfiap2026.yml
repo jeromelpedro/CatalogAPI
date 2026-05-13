@@ -1,4 +1,4 @@
-name: Build and deploy ASP.Net Core app to Azure Web App - catalog-api-posarqfiap2026
+name: Build and deploy Catalog API to AKS
 
 on:
   push:
@@ -6,57 +6,198 @@ on:
       - main
   workflow_dispatch:
 
+env:
+  DOTNET_VERSION: "9.x"
+  WORKING_DIRECTORY: src/Catalog.Api
+  MANIFESTS_DIRECTORY: k8s
+
 jobs:
-  build:
+  build_test_push_deploy:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+      id-token: write
+
+    env:
+      AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+      AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+      AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+      AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      ACR_NAME: ${{ secrets.ACR_NAME }}
+      ACR_LOGIN_SERVER: ${{ secrets.ACR_LOGIN_SERVER }}
+      IMAGE_NAME: ${{ secrets.IMAGE_NAME }}
+      AKS_CLUSTER_NAME: ${{ secrets.AKS_CLUSTER_NAME }}
+      AKS_RESOURCE_GROUP: ${{ secrets.AKS_RESOURCE_GROUP }}
+      AKS_NAMESPACE: ${{ secrets.AKS_NAMESPACE }}
+      KEYVAULT_NAME: ${{ vars.KEYVAULT_NAME }}
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      - name: Set up .NET Core
+      - name: Validate required secrets
+        shell: bash
+        run: |
+          set -euo pipefail
+          required_vars=(
+            AZURE_CLIENT_ID
+            AZURE_CLIENT_SECRET
+            AZURE_TENANT_ID
+            AZURE_SUBSCRIPTION_ID
+            ACR_NAME
+            ACR_LOGIN_SERVER
+            IMAGE_NAME
+            AKS_CLUSTER_NAME
+            AKS_RESOURCE_GROUP
+            AKS_NAMESPACE
+            KEYVAULT_NAME
+          )
+
+          for var_name in "${required_vars[@]}"; do
+            if [ -z "${!var_name:-}" ]; then
+              echo "::error::Missing required value: ${var_name}"
+              exit 1
+            fi
+          done
+
+      - name: Set up .NET
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '9.x'
+          dotnet-version: ${{ env.DOTNET_VERSION }}
 
-      - name: Build with dotnet
-        run: dotnet build src/Catalog.Api/Catalog.Api.csproj --configuration Release
+      - name: Restore
+        run: dotnet restore Catalog.slnx
 
-      - name: dotnet publish
-        run: dotnet publish src/Catalog.Api/Catalog.Api.csproj -c Release -o ${{env.DOTNET_ROOT}}/myapp --no-self-contained
+      - name: Build
+        run: dotnet build Catalog.slnx --configuration Release --no-restore
 
-      - name: Upload artifact for deployment job
-        uses: actions/upload-artifact@v4
-        with:
-          name: .net-app
-          path: ${{env.DOTNET_ROOT}}/myapp
+      - name: Test
+        run: dotnet test Catalog.slnx --configuration Release --no-restore
 
-  deploy:
-    runs-on: ubuntu-latest
-    needs: build
-    permissions:
-      id-token: write
-      contents: read
-
-    steps:
-      - name: Download artifact from build job
-        uses: actions/download-artifact@v4
-        with:
-          name: .net-app
-
-      - name: Login to Azure
+      - name: Azure login
         uses: azure/login@v2
         with:
-          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_96FBF119C917496E99FDA34F41102966 }}
-          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_1236A0658BE849A0A5B35B4CC977D13F }}
-          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_3D9D584F7A1F43EE864869EDCAD3E67C }}
+          client-id: ${{ env.AZURE_CLIENT_ID }}
+          client-secret: ${{ env.AZURE_CLIENT_SECRET }}
+          tenant-id: ${{ env.AZURE_TENANT_ID }}
+          subscription-id: ${{ env.AZURE_SUBSCRIPTION_ID }}
 
-      - name: Deploy to Azure Web App
-        id: deploy-to-webapp
-        uses: azure/webapps-deploy@v3
-        with:
-          app-name: 'catalog-api-posarqfiap2026'
-          slot-name: 'Production'
-          package: .
-          startup-command: 'dotnet Catalog.Api.dll'
+      - name: Enable AKS addons
+        shell: bash
+        run: |
+          set -euo pipefail
+          az aks update \
+            --resource-group "$AKS_RESOURCE_GROUP" \
+            --name "$AKS_CLUSTER_NAME" \
+            --enable-oidc-issuer \
+            --enable-workload-identity \
+            --enable-secret-store-csi-driver
+
+      - name: Login to ACR
+        shell: bash
+        run: |
+          set -euo pipefail
+          az acr login --name "$ACR_NAME"
+
+      - name: Build and push image
+        shell: bash
+        run: |
+          set -euo pipefail
+          IMAGE_TAG="${GITHUB_SHA::7}"
+          IMAGE_REF="${ACR_LOGIN_SERVER}/${IMAGE_NAME}:${IMAGE_TAG}"
+          LATEST_REF="${ACR_LOGIN_SERVER}/${IMAGE_NAME}:latest"
+
+          docker build -t "$IMAGE_REF" -t "$LATEST_REF" .
+          docker push "$IMAGE_REF"
+          docker push "$LATEST_REF"
+
+          echo "IMAGE_REF=$IMAGE_REF" >> "$GITHUB_ENV"
+
+      - name: Set up kubectl
+        uses: azure/setup-kubectl@v4
+
+      - name: Get AKS credentials
+        shell: bash
+        run: |
+          set -euo pipefail
+          az aks get-credentials \
+            --resource-group "$AKS_RESOURCE_GROUP" \
+            --name "$AKS_CLUSTER_NAME" \
+            --overwrite-existing
+
+      - name: Validate storage class
+        shell: bash
+        run: |
+          set -euo pipefail
+          DEFAULT_STORAGE_CLASS="$(kubectl get storageclass -o jsonpath='{.items[?(@.metadata.annotations.storageclass\.kubernetes\.io/is-default-class=="true")].metadata.name}')"
+          if [ -z "$DEFAULT_STORAGE_CLASS" ]; then
+            echo "::error::Nenhum StorageClass padrão encontrado no cluster."
+            exit 1
+          fi
+          echo "Default StorageClass: $DEFAULT_STORAGE_CLASS"
+
+      - name: Create namespace
+        shell: bash
+        run: |
+          set -euo pipefail
+          kubectl create namespace "$AKS_NAMESPACE" --dry-run=client -o yaml | kubectl apply -f -
+
+      - name: Render SecretProviderClass
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .rendered
+          sed \
+            -e "s|__KEYVAULT_NAME__|$KEYVAULT_NAME|g" \
+            -e "s|__AZURE_TENANT_ID__|$AZURE_TENANT_ID|g" \
+            k8s/secretproviderclass.yaml > .rendered/secretproviderclass.yaml
+
+      - name: Apply ServiceAccount
+        shell: bash
+        run: kubectl apply -n "$AKS_NAMESPACE" -f k8s/serviceaccount.yaml
+
+      - name: Apply SecretProviderClass
+        shell: bash
+        run: kubectl apply -n "$AKS_NAMESPACE" -f .rendered/secretproviderclass.yaml
+
+      - name: Apply ConfigMap
+        shell: bash
+        run: kubectl apply -n "$AKS_NAMESPACE" -f k8s/configmap.yaml
+
+      - name: Apply Deployment
+        shell: bash
+        run: kubectl apply -n "$AKS_NAMESPACE" -f k8s/deployment.yaml
+
+      - name: Update image
+        shell: bash
+        run: |
+          set -euo pipefail
+          kubectl set image deployment/catalog-api catalog-api="$IMAGE_REF" -n "$AKS_NAMESPACE"
+
+      - name: Apply Service
+        shell: bash
+        run: kubectl apply -n "$AKS_NAMESPACE" -f k8s/service.yaml
+
+      - name: Apply Ingress
+        shell: bash
+        run: kubectl apply -n "$AKS_NAMESPACE" -f k8s/ingress.yaml
+
+      - name: Wait for rollout
+        shell: bash
+        run: |
+          set -euo pipefail
+          if ! kubectl rollout status deployment/catalog-api -n "$AKS_NAMESPACE" --timeout=300s; then
+            echo "Rollout falhou. Coletando diagnóstico..."
+            kubectl describe deployment/catalog-api -n "$AKS_NAMESPACE"
+            kubectl get pods -n "$AKS_NAMESPACE" -o wide
+            kubectl describe pods -n "$AKS_NAMESPACE" -l app=catalog-api
+            kubectl logs -n "$AKS_NAMESPACE" deployment/catalog-api --all-containers=true --tail=200
+            exit 1
+          fi
+
+      - name: Final diagnostics
+        shell: bash
+        run: |
+          kubectl get pods -n "$AKS_NAMESPACE" -o wide
+          kubectl get svc -n "$AKS_NAMESPACE"
+          kubectl get ingress -n "$AKS_NAMESPACE"

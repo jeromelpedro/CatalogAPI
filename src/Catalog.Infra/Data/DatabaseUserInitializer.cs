@@ -10,6 +10,9 @@ namespace Catalog.Infra.Data
         {
             var setupConnection =
                 configuration.GetConnectionString("SetupConnection");
+            var appPassword =
+                configuration["Secrets:Password"]
+                ?? throw new InvalidOperationException("Secrets:Password não configurado.");
 
             const string databaseName = "dbCatalog";
 
@@ -35,7 +38,7 @@ namespace Catalog.Infra.Data
             )
             BEGIN
                 CREATE LOGIN [usuario_app]
-                WITH PASSWORD = N'SenhaForte123!', CHECK_POLICY = OFF;
+                WITH PASSWORD = N'" + appPassword.Replace("'", "''") + @"', CHECK_POLICY = OFF;
             END
         ");
 
