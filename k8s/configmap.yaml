@@ -14,5 +14,6 @@ data:
   ServiceBus__QueueNamePaymentProcessed: "PaymentProcessedEvent"
   ServiceBus__SubscriptionPaymentProcessed: "PaymentProcessedSubscription"
   Elasticsearch__Uri: "http://elasticsearch:9200"
+  MongoDb__ConnectionString: "mongodb://mongo:27017"
   MongoDb__Database: "catalogdb"
   MongoDb__ReviewCollection: "game_reviews"
