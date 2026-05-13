@@ -222,6 +222,29 @@ jobs:
             --namespace=${{ env.AKS_NAMESPACE }} \
             --timeout=15m
 
+      - name: Wait for external endpoint
+        run: |
+          echo "Waiting for external IP from Service catalog-api..."
+          for i in {1..40}; do
+            EXTERNAL_IP=$(kubectl get svc catalog-api -n ${{ env.AKS_NAMESPACE }} -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+            EXTERNAL_HOST=$(kubectl get svc catalog-api -n ${{ env.AKS_NAMESPACE }} -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
+            if [ -n "$EXTERNAL_IP" ]; then
+              echo "External IP: $EXTERNAL_IP"
+              echo "Swagger URL: http://$EXTERNAL_IP/"
+              exit 0
+            fi
+            if [ -n "$EXTERNAL_HOST" ]; then
+              echo "External Host: $EXTERNAL_HOST"
+              echo "Swagger URL: http://$EXTERNAL_HOST/"
+              exit 0
+            fi
+            echo "Still provisioning LoadBalancer... attempt $i/40"
+            sleep 15
+          done
+          echo "LoadBalancer external endpoint was not assigned in time."
+          kubectl get svc catalog-api -n ${{ env.AKS_NAMESPACE }} -o wide
+          exit 1
+
       - name: Display pod logs during deployment
         if: failure()
         run: |
@@ -239,7 +262,7 @@ jobs:
 
       - name: Test API health endpoint
         run: |
-          kubectl port-forward -n ${{ env.AKS_NAMESPACE }} svc/catalog-api 5063:5063 &
+          kubectl port-forward -n ${{ env.AKS_NAMESPACE }} svc/catalog-api 5063:80 &
           sleep 5
           curl -s http://localhost:5063/health || echo "Health endpoint not yet available (expected during warming up)"
         continue-on-error: true
