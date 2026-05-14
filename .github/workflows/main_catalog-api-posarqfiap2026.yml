@@ -180,6 +180,9 @@ jobs:
           kubectl apply -f k8s/service.yaml -n ${{ env.AKS_NAMESPACE }}
           kubectl apply -f k8s/ingress.yaml -n ${{ env.AKS_NAMESPACE }}
 
+          # Force pods to reload envFrom values from ConfigMap/Secret updates
+          kubectl rollout restart deployment/catalog-api -n ${{ env.AKS_NAMESPACE }}
+
       - name: Update deployment image
         run: |
           kubectl set image deployment/catalog-api \
