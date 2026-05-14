@@ -168,6 +168,12 @@ jobs:
           kubectl apply -f k8s/mssql-pvc.yaml -n ${{ env.AKS_NAMESPACE }}
           kubectl apply -f k8s/mssql-deployment.yaml -n ${{ env.AKS_NAMESPACE }}
           kubectl apply -f k8s/mssql-service.yaml -n ${{ env.AKS_NAMESPACE }}
+          kubectl apply -f k8s/redis-statefulset.yaml -n ${{ env.AKS_NAMESPACE }}
+          kubectl apply -f k8s/redis-service.yaml -n ${{ env.AKS_NAMESPACE }}
+          kubectl apply -f k8s/mongodb-statefulset.yaml -n ${{ env.AKS_NAMESPACE }}
+          kubectl apply -f k8s/mongodb-service.yaml -n ${{ env.AKS_NAMESPACE }}
+          kubectl apply -f k8s/elasticsearch-statefulset.yaml -n ${{ env.AKS_NAMESPACE }}
+          kubectl apply -f k8s/elasticsearch-service.yaml -n ${{ env.AKS_NAMESPACE }}
 
           # Apply API deployment and ingress
           kubectl apply -f k8s/deployment.yaml -n ${{ env.AKS_NAMESPACE }}
