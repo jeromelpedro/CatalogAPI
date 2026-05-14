@@ -95,6 +95,9 @@ using (var scope = app.Services.CreateScope())
 
 	try
 	{
+		logger.LogInformation("Aplicando migrations pendentes, se existirem.");
+		await db.Database.MigrateAsync();
+
 		logger.LogInformation("Validando conexão com o banco de dados.");
 
 		if (!db.Database.CanConnect())
