@@ -24,7 +24,7 @@ spec:
               protocol: TCP
           args:
             - --appendonly
-            - yes
+            - "yes"
           volumeMounts:
             - name: redis-data
               mountPath: /data
