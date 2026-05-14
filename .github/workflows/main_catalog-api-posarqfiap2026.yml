@@ -40,7 +40,7 @@ jobs:
           dotnet-version: '9.x'
 
       - name: Restore dependencies
-        run: dotnet restore ./src/Catalog.Api/Catalog.Api.csproj
+        run: dotnet restore ./Catalog.slnx
         working-directory: .
 
       - name: Build
@@ -48,9 +48,8 @@ jobs:
         working-directory: .
 
       - name: Run tests
-        run: dotnet test ./tests/Catalog.Tests/Catalog.Tests.csproj --configuration Release --no-build --verbosity normal
+        run: dotnet test ./tests/Catalog.Tests/Catalog.Tests.csproj --configuration Release --no-restore --verbosity normal
         working-directory: .
-        continue-on-error: true
 
   build-and-push:
     name: Build and Push to ACR
