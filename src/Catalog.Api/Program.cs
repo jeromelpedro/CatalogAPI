@@ -9,6 +9,7 @@ using Catalog.Infra.MessageBus;
 using Catalog.Infra.Repositories;
 using Elastic.Clients.Elasticsearch;
 using Microsoft.ApplicationInsights.Extensibility;
+using Microsoft.Extensions.Configuration;
 using Microsoft.EntityFrameworkCore;
 using MongoDB.Driver;
 using Serilog;
@@ -54,9 +55,10 @@ builder.Services.AddScoped<IUserGameRepository, UserGameRepository>();
 builder.Services.AddScoped<IGameSearchRepository, ElasticsearchGameRepository>();
 builder.Services.AddScoped<IGameReviewRepository, MongoGameReviewRepository>();
 
-builder.Services.AddSingleton<IMongoClient>(_ =>
+builder.Services.AddSingleton<IMongoClient>(sp =>
 {
-	var connectionString = builder.Configuration["MongoDb:ConnectionString"]
+	var logger = sp.GetRequiredService<ILoggerFactory>().CreateLogger("MongoConfiguration");
+	var connectionString = ResolveMongoConnectionString(builder.Configuration, logger)
 		?? throw new InvalidOperationException("MongoDb:ConnectionString não configurada.");
 	return new MongoClient(connectionString);
 });
@@ -119,3 +121,51 @@ app.UseAuthorization();
 app.MapControllers();
 
 await app.RunAsync();
+
+static string ResolveMongoConnectionString(IConfiguration configuration, Microsoft.Extensions.Logging.ILogger logger)
+{
+	var connectionString = configuration["MongoDb:ConnectionString"]
+		?? throw new InvalidOperationException("MongoDb:ConnectionString não configurada.");
+
+	if (!Uri.TryCreate(connectionString, UriKind.Absolute, out var mongoUri))
+	{
+		return connectionString;
+	}
+
+	if (!mongoUri.Host.Equals("mongo", StringComparison.OrdinalIgnoreCase))
+	{
+		return connectionString;
+	}
+
+	var isKubernetes = !string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("KUBERNETES_SERVICE_HOST"));
+	var isContainer = string.Equals(
+		Environment.GetEnvironmentVariable("DOTNET_RUNNING_IN_CONTAINER"),
+		"true",
+		StringComparison.OrdinalIgnoreCase);
+
+	if (isKubernetes)
+	{
+		var updated = ReplaceMongoHost(mongoUri, "mongodb");
+		logger.LogWarning("MongoDb host 'mongo' detectado em Kubernetes. Usando host '{MongoHost}'.", "mongodb");
+		return updated;
+	}
+
+	if (!isContainer)
+	{
+		var updated = ReplaceMongoHost(mongoUri, "localhost");
+		logger.LogWarning("MongoDb host 'mongo' detectado fora de container. Usando host '{MongoHost}'.", "localhost");
+		return updated;
+	}
+
+	return connectionString;
+}
+
+static string ReplaceMongoHost(Uri mongoUri, string host)
+{
+	var uriBuilder = new UriBuilder(mongoUri)
+	{
+		Host = host
+	};
+
+	return uriBuilder.Uri.ToString();
+}
