@@ -5,11 +5,11 @@ metadata:
   labels:
     app: kibana
 spec:
-  type: ClusterIP
+  type: LoadBalancer
   selector:
     app: kibana
   ports:
     - name: http
       protocol: TCP
-      port: 5601
+      port: 80
       targetPort: 5601
