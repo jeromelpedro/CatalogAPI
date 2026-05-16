@@ -57,10 +57,26 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+    outputs:
+      image_tag: ${{ steps.version.outputs.image_tag }}
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Resolve version and image tags
+        id: version
+        run: |
+          BASE_VERSION=$(cat VERSION | tr -d '[:space:]')
+          PATCH=${{ github.run_number }}
+          VERSION="${BASE_VERSION}.${PATCH}"
+          SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
+          IMAGE_TAG="v${VERSION}-${SHORT_SHA}"
+          echo "image_tag=${IMAGE_TAG}" >> $GITHUB_OUTPUT
+          echo "=== Tags que serão publicadas ==="
+          echo "  :${IMAGE_TAG}     (exata — use para rollback)"
+          echo "  :v${VERSION}            (semver)"
+          echo "  :latest                 (sempre atual)"
 
       - name: Validate required Azure secrets
         run: |
@@ -86,9 +102,14 @@ jobs:
 
       - name: Build Docker image
         run: |
+          BASE_VERSION=$(cat VERSION | tr -d '[:space:]')
+          PATCH=${{ github.run_number }}
+          VERSION="${BASE_VERSION}.${PATCH}"
+          SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
           docker buildx build \
             --platform linux/amd64,linux/arm64 \
-            -t ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }} \
+            -t ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:v${VERSION}-${SHORT_SHA} \
+            -t ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:v${VERSION} \
             -t ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest \
             -f Dockerfile \
             --push \
@@ -190,7 +211,7 @@ jobs:
       - name: Update deployment image
         run: |
           kubectl set image deployment/catalog-api \
-            catalog-api=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }} \
+            catalog-api=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.build-and-push.outputs.image_tag }} \
             --namespace=${{ env.AKS_NAMESPACE }}
 
       - name: Cleanup stuck terminating pods
