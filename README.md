@@ -9,7 +9,7 @@ API REST em .NET 9 para catálogo, pedidos, avaliações, busca avançada e inte
 - Segredos sensíveis lidos do Azure Key Vault via Secrets Store CSI Driver.
 - Identidade da aplicação configurada com Workload Identity.
 - Mensageria única: Azure Service Bus.
-- Persistência relacional via SQL Server.
+- Persistência relacional via Azure SQL Database.
 - Busca e avaliações usando Elasticsearch e MongoDB.
 
 ## O que não existe mais

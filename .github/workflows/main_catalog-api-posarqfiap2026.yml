@@ -162,11 +162,13 @@ jobs:
           kubectl apply -f .rendered/secretproviderclass.yaml -n ${{ env.AKS_NAMESPACE }}
           kubectl apply -f k8s/configmap.yaml -n ${{ env.AKS_NAMESPACE }}
 
+          # Ensure legacy in-cluster MSSQL resources are removed.
+          kubectl delete deployment mssql -n ${{ env.AKS_NAMESPACE }} --ignore-not-found
+          kubectl delete service mssql -n ${{ env.AKS_NAMESPACE }} --ignore-not-found
+          kubectl delete pvc catalog-mssql-pvc -n ${{ env.AKS_NAMESPACE }} --ignore-not-found
+          kubectl delete secret mssql-secret -n ${{ env.AKS_NAMESPACE }} --ignore-not-found
+
           # Apply data layer components
-          kubectl apply -f k8s/mssql-secret.yaml -n ${{ env.AKS_NAMESPACE }}
-          kubectl apply -f k8s/mssql-pvc.yaml -n ${{ env.AKS_NAMESPACE }}
-          kubectl apply -f k8s/mssql-deployment.yaml -n ${{ env.AKS_NAMESPACE }}
-          kubectl apply -f k8s/mssql-service.yaml -n ${{ env.AKS_NAMESPACE }}
           kubectl apply -f k8s/redis-statefulset.yaml -n ${{ env.AKS_NAMESPACE }}
           kubectl apply -f k8s/redis-service.yaml -n ${{ env.AKS_NAMESPACE }}
           kubectl apply -f k8s/mongodb-statefulset.yaml -n ${{ env.AKS_NAMESPACE }}
